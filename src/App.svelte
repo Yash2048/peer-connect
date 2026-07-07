@@ -4,6 +4,9 @@
   let hasPerms = $state(false);
   let width = $state(1280);
   let height = $state(720);
+  let recording = $state(0); // 0: not recording, 2: recording, 3: recording paused
+  let mediaRecorder: MediaRecorder | null = $state(null);
+  let recordedBlobs: Array<Blob> = [];
 
   let stream: MediaStream | null = null;
   let myVideo: HTMLMediaElement | null;
@@ -55,6 +58,52 @@
       track.applyConstraints(videoConstraints);
     });
   };
+  const startRecording = () => {
+    console.log("started recording...");
+    if (!stream) return;
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+    if (mediaRecorder == null) return;
+
+    mediaRecorder.ondataavailable = (e: BlobEvent) => {
+      console.log(e.data);
+      recordedBlobs.push((e as BlobEvent).data);
+    };
+
+    mediaRecorder.start();
+    recording = 1;
+  };
+
+  const pauseRecording = () => {
+    if (recording == 1) {
+      console.log("recording paused.");
+      mediaRecorder?.pause();
+      recording = 2;
+    } else if (recording == 2) {
+      console.log("recording unpaused.");
+      mediaRecorder?.resume();
+      recording = 1;
+    }
+  };
+
+  const stopRecording = () => {
+    console.log("recording stopped.");
+    mediaRecorder?.stop();
+    recording = 0;
+  };
+
+  const playRecording = () => {
+    console.log("Playing recording.");
+    const mimeType = mediaRecorder?.mimeType || "video/webm";
+    const superBlob = new Blob(recordedBlobs, { type: mimeType });
+    const recordedVideo: HTMLMediaElement | null =
+      document.querySelector("#outgoing");
+    if (recordedVideo) {
+      recordedVideo.src = window.URL.createObjectURL(superBlob);
+      recordedVideo.controls = true;
+      recordedVideo.play();
+    }
+  };
 </script>
 
 <main>
@@ -70,6 +119,16 @@
       <input bind:value={width} type="number" />
       <input bind:value={height} type="number" />
     </div>
+    <button disabled={!hasPerms} onclick={startRecording}
+      >Start Recording</button
+    >
+    <button disabled={!hasPerms || recording == 0} onclick={pauseRecording}
+      >{recording == 2 ? "Unpause" : "Pause"} Recording</button
+    >
+    <button disabled={!hasPerms || recording == 0} onclick={stopRecording}
+      >Stop Recording</button
+    >
+    <button disabled={!hasPerms} onclick={playRecording}>Play Recording</button>
   </section>
   <section class="feed">
     <video id="incoming" autoplay></video>
