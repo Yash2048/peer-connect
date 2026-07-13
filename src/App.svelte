@@ -1,18 +1,22 @@
 <script lang="ts">
+  import { onMount } from "svelte";
+
   // state
   let playing = $state(false);
   let hasPerms = $state(false);
-  let width = $state(1280);
-  let height = $state(720);
+  let width = $state(480);
+  let height = $state(240);
   let recording = $state(0); // 0: not recording, 2: recording, 3: recording paused
+  let screenSharing = $state(false);
+
   let mediaRecorder: MediaRecorder | null = $state(null);
   let recordedBlobs: Array<Blob> = [];
-
-  let stream: MediaStream | null = null;
+  let stream: MediaStream | null = $state(null);
+  let screenShareStream: MediaStream | null = $state(null);
   let myVideo: HTMLMediaElement | null;
   const constraints = { video: true, audio: true };
 
-  const askPermissions = async () => {
+  const getPermissions = async () => {
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (stream) {
@@ -62,7 +66,7 @@
     console.log("started recording...");
     if (!stream) return;
 
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+    mediaRecorder = new MediaRecorder(stream, {});
     if (mediaRecorder == null) return;
 
     mediaRecorder.ondataavailable = (e: BlobEvent) => {
@@ -104,11 +108,32 @@
       recordedVideo.play();
     }
   };
+
+  const shareScreen = async () => {
+    const screenShareElement: HTMLMediaElement | null =
+      document.querySelector("#screen-share");
+    if (screenSharing) {
+      if (screenShareElement) screenShareElement.srcObject = null;
+    } else {
+      try {
+        screenShareStream = await navigator.mediaDevices.getDisplayMedia();
+        if (screenShareStream) {
+          console.log(screenShareStream);
+          if (screenShareElement) {
+            screenShareElement.srcObject = screenShareStream;
+          }
+        }
+      } catch (error) {}
+    }
+    screenSharing = !screenSharing;
+  };
+
+  onMount(getPermissions);
 </script>
 
 <main>
   <section class="options">
-    <button id="permsButton" onclick={askPermissions}>Get Permissions</button>
+    <button id="permsButton" onclick={getPermissions}>Get Permissions</button>
     <button onclick={toggleFeed} disabled={!hasPerms}
       >{playing ? "Stop" : "Show"} my video</button
     >
@@ -129,10 +154,14 @@
       >Stop Recording</button
     >
     <button disabled={!hasPerms} onclick={playRecording}>Play Recording</button>
+    <button onclick={shareScreen}
+      >{screenSharing ? "Stop Sharing" : "Share Screen"}</button
+    >
   </section>
   <section class="feed">
     <video id="incoming" autoplay></video>
     <video id="outgoing" autoplay></video>
+    <video id="screen-share" autoplay></video>
   </section>
 </main>
 
@@ -157,5 +186,11 @@
   }
   input {
     width: 8rem;
+  }
+
+  #outgoing,
+  #incoming,
+  #screen-share {
+    max-width: 480px;
   }
 </style>
