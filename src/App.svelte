@@ -8,6 +8,9 @@
   let height = $state(240);
   let recording = $state(0); // 0: not recording, 2: recording, 3: recording paused
   let screenSharing = $state(false);
+  let audioInputDevices: MediaDeviceInfo[] = $state([]);
+  let audioOutputDevices: MediaDeviceInfo[] = $state([]);
+  let videoInputDevices: MediaDeviceInfo[] = $state([]);
 
   let mediaRecorder: MediaRecorder | null = $state(null);
   let recordedBlobs: Array<Blob> = [];
@@ -23,6 +26,15 @@
         hasPerms = true;
       }
     } catch (error) {}
+  };
+  const getDevices = async () => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    console.log(devices);
+    devices.forEach((device) => {
+      if (device.kind == "audioinput") audioInputDevices.push(device);
+      if (device.kind == "audiooutput") audioOutputDevices.push(device);
+      if (device.kind == "videoinput") videoInputDevices.push(device);
+    });
   };
 
   const toggleFeed = () => {
@@ -128,7 +140,10 @@
     screenSharing = !screenSharing;
   };
 
-  onMount(getPermissions);
+  onMount(async () => {
+    await getPermissions();
+    await getDevices();
+  });
 </script>
 
 <main>
@@ -157,6 +172,39 @@
     <button onclick={shareScreen}
       >{screenSharing ? "Stop Sharing" : "Share Screen"}</button
     >
+    <div class="input">
+      <label for="audio-input">Select Audio Input</label>
+      <select name="audio-input" id="audio-input"
+        ><option value="0">Select</option>
+        {#each audioInputDevices as audioInputDevice}
+          <option value={audioInputDevice.deviceId}
+            >{audioInputDevice.label}</option
+          >
+        {/each}
+      </select>
+    </div>
+    <div class="input">
+      <label for="audio-output">Select Audio Output</label>
+      <select name="audio-output" id="audio-output"
+        ><option value="0">Select</option>
+        {#each audioOutputDevices as audioOutputDevice}
+          <option value={audioOutputDevice.deviceId}
+            >{audioOutputDevice.label}</option
+          >
+        {/each}
+      </select>
+    </div>
+    <div class="input">
+      <label for="video-input">Select Video Input</label>
+      <select name="video-input" id="video-input"
+        ><option value="0">Select</option>
+        {#each videoInputDevices as videoInputDevice}
+          <option value={videoInputDevice.deviceId}
+            >{videoInputDevice.label}</option
+          >
+        {/each}</select
+      >
+    </div>
   </section>
   <section class="feed">
     <video id="incoming" autoplay></video>
@@ -192,5 +240,9 @@
   #incoming,
   #screen-share {
     max-width: 480px;
+  }
+
+  select {
+    max-width: 16.5rem;
   }
 </style>
