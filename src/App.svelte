@@ -16,7 +16,7 @@
   let recordedBlobs: Array<Blob> = [];
   let stream: MediaStream | null = $state(null);
   let screenShareStream: MediaStream | null = $state(null);
-  let myVideo: HTMLMediaElement | null;
+  let myVideo: HTMLMediaElement | null = document.querySelector("#incoming");
   const constraints = { video: true, audio: true };
 
   const getPermissions = async () => {
@@ -31,9 +31,19 @@
     const devices = await navigator.mediaDevices.enumerateDevices();
     console.log(devices);
     devices.forEach((device) => {
-      if (device.kind == "audioinput") audioInputDevices.push(device);
-      if (device.kind == "audiooutput") audioOutputDevices.push(device);
-      if (device.kind == "videoinput") videoInputDevices.push(device);
+      switch (device.kind) {
+        case "audioinput":
+          audioInputDevices.push(device);
+          break;
+        case "audiooutput":
+          audioOutputDevices.push(device);
+          break;
+        case "videoinput":
+          videoInputDevices.push(device);
+          break;
+        default:
+          break;
+      }
     });
   };
 
@@ -140,6 +150,44 @@
     screenSharing = !screenSharing;
   };
 
+  const changeAudioInput = async (e: Event) => {
+    const deviceId = (e.target as HTMLSelectElement).value;
+    const newConstraints = {
+      audio: { deviceId: { exact: deviceId } },
+      video: true,
+    };
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(newConstraints);
+      console.log(stream);
+      if (myVideo && stream) myVideo.srcObject = stream;
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  const changeAudioOutput = async (e: Event) => {
+    try {
+      if (myVideo && stream) await myVideo.setSinkId((e.target as HTMLSelectElement).value);
+    } catch (error) {
+      console.error(error)
+    }
+  };
+  const changeVideoInput = async (e: Event) => {
+    const deviceId = (e.target as HTMLSelectElement).value;
+    const newConstraints = {
+      video: { deviceId: { exact: deviceId } },
+      audio: true,
+    };
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(newConstraints);
+      console.log(stream);
+      if (myVideo && stream) myVideo.srcObject = stream;
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   onMount(async () => {
     await getPermissions();
     await getDevices();
@@ -174,8 +222,8 @@
     >
     <div class="input">
       <label for="audio-input">Select Audio Input</label>
-      <select name="audio-input" id="audio-input"
-        ><option value="0">Select</option>
+      <select onchange={changeAudioInput} name="audio-input" id="audio-input"
+        ><option value="">Select</option>
         {#each audioInputDevices as audioInputDevice}
           <option value={audioInputDevice.deviceId}
             >{audioInputDevice.label}</option
@@ -185,8 +233,8 @@
     </div>
     <div class="input">
       <label for="audio-output">Select Audio Output</label>
-      <select name="audio-output" id="audio-output"
-        ><option value="0">Select</option>
+      <select onchange={changeAudioOutput} name="audio-output" id="audio-output"
+        ><option value="">Select</option>
         {#each audioOutputDevices as audioOutputDevice}
           <option value={audioOutputDevice.deviceId}
             >{audioOutputDevice.label}</option
@@ -196,8 +244,8 @@
     </div>
     <div class="input">
       <label for="video-input">Select Video Input</label>
-      <select name="video-input" id="video-input"
-        ><option value="0">Select</option>
+      <select onchange={changeVideoInput} name="video-input" id="video-input"
+        ><option value="">Select</option>
         {#each videoInputDevices as videoInputDevice}
           <option value={videoInputDevice.deviceId}
             >{videoInputDevice.label}</option
