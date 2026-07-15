@@ -11,12 +11,12 @@
   let audioInputDevices: MediaDeviceInfo[] = $state([]);
   let audioOutputDevices: MediaDeviceInfo[] = $state([]);
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
+  let myVideo: HTMLVideoElement | undefined = $state();
 
-  let mediaRecorder: MediaRecorder | null = $state(null);
+  let stream: MediaStream | null;
+  let mediaRecorder: MediaRecorder | null;
+  let screenShareStream: MediaStream | null;
   let recordedBlobs: Array<Blob> = [];
-  let stream: MediaStream | null = $state(null);
-  let screenShareStream: MediaStream | null = $state(null);
-  let myVideo: HTMLMediaElement | null = document.querySelector("#incoming");
   const constraints = { video: true, audio: true };
 
   const getPermissions = async () => {
@@ -30,26 +30,15 @@
   const getDevices = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     console.log(devices);
-    devices.forEach((device) => {
-      switch (device.kind) {
-        case "audioinput":
-          audioInputDevices.push(device);
-          break;
-        case "audiooutput":
-          audioOutputDevices.push(device);
-          break;
-        case "videoinput":
-          videoInputDevices.push(device);
-          break;
-        default:
-          break;
-      }
-    });
+    audioInputDevices = devices.filter((device) => device.kind == "audioinput");
+    audioOutputDevices = devices.filter(
+      (device) => device.kind == "audiooutput",
+    );
+    videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
 
   const toggleFeed = () => {
     console.log("toggleFeed is working");
-    myVideo = document.querySelector("#incoming");
     if (playing) {
       const tracks = stream?.getTracks();
       tracks?.forEach((track) => track.stop());
@@ -167,9 +156,10 @@
   };
   const changeAudioOutput = async (e: Event) => {
     try {
-      if (myVideo && stream) await myVideo.setSinkId((e.target as HTMLSelectElement).value);
+      if (myVideo && stream)
+        await myVideo.setSinkId((e.target as HTMLSelectElement).value);
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   };
   const changeVideoInput = async (e: Event) => {
@@ -255,7 +245,7 @@
     </div>
   </section>
   <section class="feed">
-    <video id="incoming" autoplay></video>
+    <video id="incoming" bind:this={myVideo} autoplay></video>
     <video id="outgoing" autoplay></video>
     <video id="screen-share" autoplay></video>
   </section>
