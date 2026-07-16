@@ -6,18 +6,20 @@
   let hasPerms = $state(false);
   let width = $state(480);
   let height = $state(240);
-  let recording = $state(0); // 0: not recording, 2: recording, 3: recording paused
+  let recording = $state(0); // 0: not recording, 1: recording, 2: recording paused
   let screenSharing = $state(false);
   let audioInputDevices: MediaDeviceInfo[] = $state([]);
   let audioOutputDevices: MediaDeviceInfo[] = $state([]);
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
-  let myVideo: HTMLVideoElement | undefined = $state();
+  let incomingVideo: HTMLVideoElement | undefined = $state();
+  let outgoingVideo: HTMLVideoElement | undefined = $state();
+  let screenShareVideo: HTMLVideoElement | undefined = $state();
 
   let stream: MediaStream | null;
   let mediaRecorder: MediaRecorder | null;
   let screenShareStream: MediaStream | null;
   let recordedBlobs: Array<Blob> = [];
-  const constraints = { video: true, audio: true };
+  const constraints: MediaStreamConstraints = { video: true, audio: true };
 
   const getPermissions = async () => {
     try {
@@ -42,11 +44,11 @@
     if (playing) {
       const tracks = stream?.getTracks();
       tracks?.forEach((track) => track.stop());
-      if (myVideo) myVideo.srcObject = null;
+      if (incomingVideo) incomingVideo.srcObject = null;
       hasPerms = false;
     } else {
-      if (myVideo) {
-        myVideo.srcObject = stream;
+      if (incomingVideo) {
+        incomingVideo.srcObject = stream;
       }
     }
     playing = !playing;
@@ -111,27 +113,23 @@
     console.log("Playing recording.");
     const mimeType = mediaRecorder?.mimeType || "video/webm";
     const superBlob = new Blob(recordedBlobs, { type: mimeType });
-    const recordedVideo: HTMLMediaElement | null =
-      document.querySelector("#outgoing");
-    if (recordedVideo) {
-      recordedVideo.src = window.URL.createObjectURL(superBlob);
-      recordedVideo.controls = true;
-      recordedVideo.play();
+    if (outgoingVideo) {
+      outgoingVideo.src = window.URL.createObjectURL(superBlob);
+      outgoingVideo.controls = true;
+      outgoingVideo.play();
     }
   };
 
   const shareScreen = async () => {
-    const screenShareElement: HTMLMediaElement | null =
-      document.querySelector("#screen-share");
     if (screenSharing) {
-      if (screenShareElement) screenShareElement.srcObject = null;
+      if (screenShareVideo) screenShareVideo.srcObject = null;
     } else {
       try {
         screenShareStream = await navigator.mediaDevices.getDisplayMedia();
         if (screenShareStream) {
           console.log(screenShareStream);
-          if (screenShareElement) {
-            screenShareElement.srcObject = screenShareStream;
+          if (screenShareVideo) {
+            screenShareVideo.srcObject = screenShareStream;
           }
         }
       } catch (error) {}
@@ -149,15 +147,15 @@
     try {
       stream = await navigator.mediaDevices.getUserMedia(newConstraints);
       console.log(stream);
-      if (myVideo && stream) myVideo.srcObject = stream;
+      if (incomingVideo && stream) incomingVideo.srcObject = stream;
     } catch (error) {
       console.error(error);
     }
   };
   const changeAudioOutput = async (e: Event) => {
     try {
-      if (myVideo && stream)
-        await myVideo.setSinkId((e.target as HTMLSelectElement).value);
+      if (incomingVideo && stream)
+        await incomingVideo.setSinkId((e.target as HTMLSelectElement).value);
     } catch (error) {
       console.error(error);
     }
@@ -172,7 +170,7 @@
     try {
       stream = await navigator.mediaDevices.getUserMedia(newConstraints);
       console.log(stream);
-      if (myVideo && stream) myVideo.srcObject = stream;
+      if (incomingVideo && stream) incomingVideo.srcObject = stream;
     } catch (error) {
       console.error(error);
     }
@@ -187,15 +185,18 @@
 <main>
   <section class="options">
     <button id="permsButton" onclick={getPermissions}>Get Permissions</button>
-    <button onclick={toggleFeed} disabled={!hasPerms}
+    <button onclick={toggleFeed} disabled={!hasPerms} aria-pressed={playing}
       >{playing ? "Stop" : "Show"} my video</button
     >
-    <button disabled={!hasPerms} onclick={changeSize}>
+    <div class="screen-size">
+      <button disabled={!hasPerms} onclick={changeSize}>
       Change screen size</button
-    >
-    <div>
-      <input bind:value={width} type="number" />
-      <input bind:value={height} type="number" />
+      >
+      <div>
+
+        <input bind:value={width} type="number" />
+        <input bind:value={height} type="number" />
+      </div>
     </div>
     <button disabled={!hasPerms} onclick={startRecording}
       >Start Recording</button
@@ -207,7 +208,7 @@
       >Stop Recording</button
     >
     <button disabled={!hasPerms} onclick={playRecording}>Play Recording</button>
-    <button onclick={shareScreen}
+    <button onclick={shareScreen} aria-pressed={screenSharing}
       >{screenSharing ? "Stop Sharing" : "Share Screen"}</button
     >
     <div class="input">
@@ -245,9 +246,21 @@
     </div>
   </section>
   <section class="feed">
-    <video id="incoming" bind:this={myVideo} autoplay></video>
-    <video id="outgoing" autoplay></video>
-    <video id="screen-share" autoplay></video>
+    <div>
+      <h2>Incoming Feed</h2>
+      <video id="incoming" bind:this={incomingVideo} autoplay playsinline
+      ></video>
+    </div>
+    <div>
+      <h2>Outgoing Feed</h2>
+      <video id="outgoing" bind:this={outgoingVideo} autoplay playsinline
+      ></video>
+    </div>
+    <div>
+      <h2>Extra</h2>
+      <video id="screen-share" bind:this={screenShareVideo} autoplay playsinline
+      ></video>
+    </div>
   </section>
 </main>
 
@@ -282,5 +295,10 @@
 
   select {
     max-width: 16.5rem;
+  }
+  .screen-size{
+    display: flex;
+    flex-direction: column;
+    gap:1rem
   }
 </style>
