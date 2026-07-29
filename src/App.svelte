@@ -22,18 +22,16 @@
   const constraints: MediaStreamConstraints = { video: true, audio: true };
 
   const getPermissions = async () => {
-    console.log('get perms ran!');
-    
+    console.log("get perms ran!");
+
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (stream) {
         hasPerms = true;
-        console.log('stream is available');
-        
+        console.log("stream is available");
       }
     } catch (error) {
       console.error(error);
-      
     }
   };
 
@@ -75,13 +73,14 @@
   };
 
   // WebRTC code
+  let roomName = $state("");
+  let userName = $state("");
   import { io } from "socket.io-client";
 
   const socket = io("https://rkcjc80k-8080.inc1.devtunnels.ms/", {
     transports: ["websocket", "polling"],
     upgrade: true,
   });
-  let room = $state("");
 
   type SignalMessage =
     | { type: "offer"; offer: RTCSessionDescriptionInit }
@@ -99,7 +98,7 @@
   pc.onicecandidate = (event) => {
     if (event.candidate) {
       socket.emit("signal", {
-        room,
+        room: roomName,
         data: { type: "ice-candidate", candidate: event.candidate.toJSON() },
       });
     }
@@ -110,7 +109,7 @@
   };
 
   const joinRoom = () => {
-    if (room) socket.emit("join", room);
+    if (roomName) socket.emit("join", roomName);
   };
 
   // Handle incoming signals
@@ -127,7 +126,10 @@
 
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socket.emit("signal", { room, data: { type: "answer", answer } });
+      socket.emit("signal", {
+        room: roomName,
+        data: { type: "answer", answer },
+      });
     } else if (msg.type === "answer") {
       await pc.setRemoteDescription(msg.answer);
       remoteDescSet = true;
@@ -150,7 +152,7 @@
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    socket.emit("signal", { room, data: { type: "offer", offer } });
+    socket.emit("signal", { room: roomName, data: { type: "offer", offer } });
   };
 
   onMount(async () => {
@@ -159,13 +161,43 @@
   });
 </script>
 
-<input
-  type="text"
-  name="room"
-  id="room"
-  bind:value={room}
-  onchange={joinRoom}
-/>
+<dialog id="call-info" open>
+  <form method="dialog">
+    <fieldset>
+      <label>
+        Room Name
+        <input
+          type="text"
+          name="room-name"
+          bind:value={roomName}
+          placeholder="Meeting"
+        />
+      </label>
+      <label>
+        User Name
+        <input
+          type="text"
+          name="user-name"
+          bind:value={userName}
+          placeholder="My room"
+        />
+      </label>
+    </fieldset>
+    <div role="group">
+      <button type="submit" command="close" commandfor="call-info"
+        >Start Call
+      </button>
+      <button type="submit" command="close" commandfor="call-info"
+        >Join Call
+      </button>
+    </div>
+  </form>
+</dialog>
+
+<div class="user-info">
+  <span>Room No: <span>{roomName}</span></span>
+  <span>Username: <span>{userName}</span></span>
+</div>
 <main>
   <section class="options">
     <button id="permsButton" onclick={getPermissions}>Get Permissions</button>
@@ -267,7 +299,7 @@
     background-color: #005f3d;
     border: 0;
   }
-  input {
+  main input {
     width: 8rem;
   }
 
@@ -284,5 +316,19 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+  }
+
+  div[role="group"] input:hover {
+    border: darkgrey 1px solid;
+  }
+  .user-info {
+    display: flex;
+    justify-content: space-between;
+    span {
+      padding: 0.5rem 1rem;
+      span{
+        text-decoration: underline;
+      }
+    }
   }
 </style>
