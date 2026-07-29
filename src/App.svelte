@@ -11,8 +11,8 @@
   let audioInputDevices: MediaDeviceInfo[] = $state([]);
   let audioOutputDevices: MediaDeviceInfo[] = $state([]);
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
-  let incomingVideo: HTMLVideoElement | undefined = $state();
   let outgoingVideo: HTMLVideoElement | undefined = $state();
+  let incomingVideo: HTMLVideoElement | undefined = $state();
   let screenShareVideo: HTMLVideoElement | undefined = $state();
 
   let stream: MediaStream | null;
@@ -22,21 +22,19 @@
   const constraints: MediaStreamConstraints = { video: true, audio: true };
 
   const getPermissions = async () => {
+    console.log('get perms ran!');
+    
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (stream) {
         hasPerms = true;
+        console.log('stream is available');
+        
       }
-    } catch (error) {}
-  };
-  const getDevices = async () => {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    console.log(devices);
-    audioInputDevices = devices.filter((device) => device.kind == "audioinput");
-    audioOutputDevices = devices.filter(
-      (device) => device.kind == "audiooutput",
-    );
-    videoInputDevices = devices.filter((device) => device.kind == "videoinput");
+    } catch (error) {
+      console.error(error);
+      
+    }
   };
 
   const toggleFeed = () => {
@@ -44,11 +42,11 @@
     if (playing) {
       const tracks = stream?.getTracks();
       tracks?.forEach((track) => track.stop());
-      if (incomingVideo) incomingVideo.srcObject = null;
+      if (outgoingVideo) outgoingVideo.srcObject = null;
       hasPerms = false;
     } else {
-      if (incomingVideo) {
-        incomingVideo.srcObject = stream;
+      if (outgoingVideo) {
+        outgoingVideo.srcObject = stream;
       }
     }
     playing = !playing;
@@ -75,113 +73,99 @@
       track.applyConstraints(videoConstraints);
     });
   };
-  const startRecording = () => {
-    console.log("started recording...");
-    if (!stream) return;
 
-    mediaRecorder = new MediaRecorder(stream, {});
-    if (mediaRecorder == null) return;
+  // WebRTC code
+  import { io } from "socket.io-client";
 
-    mediaRecorder.ondataavailable = (e: BlobEvent) => {
-      console.log(e.data);
-      recordedBlobs.push((e as BlobEvent).data);
-    };
+  const socket = io("https://rkcjc80k-8080.inc1.devtunnels.ms/", {
+    transports: ["websocket", "polling"],
+    upgrade: true,
+  });
+  let room = $state("");
 
-    mediaRecorder.start();
-    recording = 1;
+  type SignalMessage =
+    | { type: "offer"; offer: RTCSessionDescriptionInit }
+    | { type: "answer"; answer: RTCSessionDescriptionInit }
+    | { type: "ice-candidate"; candidate: RTCIceCandidateInit };
+
+  let rtcConfig: RTCConfiguration = {
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   };
+  let pc = new RTCPeerConnection(rtcConfig);
 
-  const pauseRecording = () => {
-    if (recording == 1) {
-      console.log("recording paused.");
-      mediaRecorder?.pause();
-      recording = 2;
-    } else if (recording == 2) {
-      console.log("recording unpaused.");
-      mediaRecorder?.resume();
-      recording = 1;
+  let pendingCandidates: RTCIceCandidateInit[] = [];
+  let remoteDescSet = false;
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.emit("signal", {
+        room,
+        data: { type: "ice-candidate", candidate: event.candidate.toJSON() },
+      });
     }
   };
 
-  const stopRecording = () => {
-    console.log("recording stopped.");
-    mediaRecorder?.stop();
-    recording = 0;
+  pc.ontrack = (event) => {
+    if (incomingVideo) incomingVideo.srcObject = event.streams[0];
   };
 
-  const playRecording = () => {
-    console.log("Playing recording.");
-    const mimeType = mediaRecorder?.mimeType || "video/webm";
-    const superBlob = new Blob(recordedBlobs, { type: mimeType });
-    if (outgoingVideo) {
-      outgoingVideo.src = window.URL.createObjectURL(superBlob);
-      outgoingVideo.controls = true;
-      outgoingVideo.play();
-    }
+  const joinRoom = () => {
+    if (room) socket.emit("join", room);
   };
 
-  const shareScreen = async () => {
-    if (screenSharing) {
-      if (screenShareVideo) screenShareVideo.srcObject = null;
-    } else {
-      try {
-        screenShareStream = await navigator.mediaDevices.getDisplayMedia();
-        if (screenShareStream) {
-          console.log(screenShareStream);
-          if (screenShareVideo) {
-            screenShareVideo.srcObject = screenShareStream;
-          }
-        }
-      } catch (error) {}
-    }
-    screenSharing = !screenSharing;
-  };
+  // Handle incoming signals
+  socket.on("signal", async (msg: SignalMessage) => {
+    if (msg.type === "offer") {
+      if (stream)
+        stream.getTracks().forEach((track) => {
+          if (stream) pc.addTrack(track, stream);
+        });
+      await pc.setRemoteDescription(msg.offer);
+      remoteDescSet = true;
+      for (const c of pendingCandidates) await pc.addIceCandidate(c);
+      pendingCandidates = [];
 
-  const changeAudioInput = async (e: Event) => {
-    const deviceId = (e.target as HTMLSelectElement).value;
-    const newConstraints = {
-      audio: { deviceId: { exact: deviceId } },
-      video: true,
-    };
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      socket.emit("signal", { room, data: { type: "answer", answer } });
+    } else if (msg.type === "answer") {
+      await pc.setRemoteDescription(msg.answer);
+      remoteDescSet = true;
+      for (const c of pendingCandidates) await pc.addIceCandidate(c);
+      pendingCandidates = [];
+    } else if (msg.type === "ice-candidate") {
+      if (remoteDescSet) {
+        await pc.addIceCandidate(msg.candidate);
+      } else {
+        pendingCandidates.push(msg.candidate);
+      }
+    }
+  });
 
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(newConstraints);
-      console.log(stream);
-      if (incomingVideo && stream) incomingVideo.srcObject = stream;
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  const changeAudioOutput = async (e: Event) => {
-    try {
-      if (incomingVideo && stream)
-        await incomingVideo.setSinkId((e.target as HTMLSelectElement).value);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  const changeVideoInput = async (e: Event) => {
-    const deviceId = (e.target as HTMLSelectElement).value;
-    const newConstraints = {
-      video: { deviceId: { exact: deviceId } },
-      audio: true,
-    };
+  const startCall = async () => {
+    if (stream)
+      stream.getTracks().forEach((track) => {
+        if (stream) pc.addTrack(track, stream);
+      });
 
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(newConstraints);
-      console.log(stream);
-      if (incomingVideo && stream) incomingVideo.srcObject = stream;
-    } catch (error) {
-      console.error(error);
-    }
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit("signal", { room, data: { type: "offer", offer } });
   };
 
   onMount(async () => {
     await getPermissions();
-    await getDevices();
+    // await getDevices();
   });
 </script>
 
+<input
+  type="text"
+  name="room"
+  id="room"
+  bind:value={room}
+  onchange={joinRoom}
+/>
 <main>
   <section class="options">
     <button id="permsButton" onclick={getPermissions}>Get Permissions</button>
@@ -190,15 +174,15 @@
     >
     <div class="screen-size">
       <button disabled={!hasPerms} onclick={changeSize}>
-      Change screen size</button
+        Change screen size</button
       >
       <div>
-
         <input bind:value={width} type="number" />
         <input bind:value={height} type="number" />
       </div>
+      <button onclick={startCall}>Start Call</button>
     </div>
-    <button disabled={!hasPerms} onclick={startRecording}
+    <!-- <button disabled={!hasPerms} onclick={startRecording}
       >Start Recording</button
     >
     <button disabled={!hasPerms || recording == 0} onclick={pauseRecording}
@@ -210,8 +194,8 @@
     <button disabled={!hasPerms} onclick={playRecording}>Play Recording</button>
     <button onclick={shareScreen} aria-pressed={screenSharing}
       >{screenSharing ? "Stop Sharing" : "Share Screen"}</button
-    >
-    <div class="input">
+    > -->
+    <!-- <div class="input">
       <label for="audio-input">Select Audio Input</label>
       <select onchange={changeAudioInput} name="audio-input" id="audio-input"
         ><option value="">Select</option>
@@ -243,7 +227,7 @@
           >
         {/each}</select
       >
-    </div>
+    </div> -->
   </section>
   <section class="feed">
     <div>
@@ -253,7 +237,7 @@
     </div>
     <div>
       <h2>Outgoing Feed</h2>
-      <video id="outgoing" bind:this={outgoingVideo} autoplay playsinline
+      <video id="outgoing" bind:this={outgoingVideo} autoplay muted playsinline
       ></video>
     </div>
     <div>
@@ -296,9 +280,9 @@
   select {
     max-width: 16.5rem;
   }
-  .screen-size{
+  .screen-size {
     display: flex;
     flex-direction: column;
-    gap:1rem
+    gap: 1rem;
   }
 </style>
