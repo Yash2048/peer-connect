@@ -77,7 +77,7 @@
   let userName = $state("");
   import { io } from "socket.io-client";
 
-  const socket = io("https://rkcjc80k-8080.inc1.devtunnels.ms/", {
+  const socket = io("http://localhost:8080", {
     transports: ["websocket", "polling"],
     upgrade: true,
   });
@@ -112,13 +112,26 @@
     if (roomName) socket.emit("join", roomName);
   };
 
+  socket.on("joined", async ({ isInitiator }) => {
+    if (isInitiator) {
+    } else {
+      startCall();
+    }
+  });
+
   // Handle incoming signals
   socket.on("signal", async (msg: SignalMessage) => {
     if (msg.type === "offer") {
-      if (stream)
+      if (pc.signalingState !== "stable") {
+        return;
+      }
+
+      if (stream) {
         stream.getTracks().forEach((track) => {
           if (stream) pc.addTrack(track, stream);
         });
+      }
+
       await pc.setRemoteDescription(msg.offer);
       remoteDescSet = true;
       for (const c of pendingCandidates) await pc.addIceCandidate(c);
@@ -126,8 +139,10 @@
 
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
+
       socket.emit("signal", {
         room: roomName,
+        userName: userName,
         data: { type: "answer", answer },
       });
     } else if (msg.type === "answer") {
@@ -143,7 +158,6 @@
       }
     }
   });
-
   const startCall = async () => {
     if (stream)
       stream.getTracks().forEach((track) => {
@@ -162,7 +176,7 @@
 </script>
 
 <dialog id="call-info" open>
-  <form method="dialog">
+  <form method="dialog" onsubmit={joinRoom}>
     <fieldset>
       <label>
         Room Name
@@ -171,6 +185,8 @@
           name="room-name"
           bind:value={roomName}
           placeholder="Meeting"
+          minlength="1"
+          required
         />
       </label>
       <label>
@@ -180,16 +196,14 @@
           name="user-name"
           bind:value={userName}
           placeholder="My room"
+          minlength="1"
+          required
         />
       </label>
     </fieldset>
     <div role="group">
-      <button type="submit" command="close" commandfor="call-info"
-        >Start Call
-      </button>
-      <button type="submit" command="close" commandfor="call-info"
-        >Join Call
-      </button>
+      <button>Start Call </button>
+      <!-- <button type="submit" command="close" commandfor="call-info">Join Call</button> -->
     </div>
   </form>
 </dialog>
@@ -326,7 +340,7 @@
     justify-content: space-between;
     span {
       padding: 0.5rem 1rem;
-      span{
+      span {
         text-decoration: underline;
       }
     }
