@@ -6,19 +6,10 @@
   let hasPerms = $state(false);
   let width = $state(480);
   let height = $state(240);
-  let recording = $state(0); // 0: not recording, 1: recording, 2: recording paused
-  let screenSharing = $state(false);
-  let audioInputDevices: MediaDeviceInfo[] = $state([]);
-  let audioOutputDevices: MediaDeviceInfo[] = $state([]);
-  let videoInputDevices: MediaDeviceInfo[] = $state([]);
   let outgoingVideo: HTMLVideoElement | undefined = $state();
   let incomingVideo: HTMLVideoElement | undefined = $state();
-  let screenShareVideo: HTMLVideoElement | undefined = $state();
 
   let stream: MediaStream | null;
-  let mediaRecorder: MediaRecorder | null;
-  let screenShareStream: MediaStream | null;
-  let recordedBlobs: Array<Blob> = [];
   const constraints: MediaStreamConstraints = { video: true, audio: true };
 
   const getPermissions = async () => {
@@ -35,47 +26,12 @@
     }
   };
 
-  const toggleFeed = () => {
-    console.log("toggleFeed is working");
-    if (playing) {
-      const tracks = stream?.getTracks();
-      tracks?.forEach((track) => track.stop());
-      if (outgoingVideo) outgoingVideo.srcObject = null;
-      hasPerms = false;
-    } else {
-      if (outgoingVideo) {
-        outgoingVideo.srcObject = stream;
-      }
-    }
-    playing = !playing;
-  };
-  const changeSize = () => {
-    if (!stream) return;
-    const tracks = stream.getVideoTracks();
-    console.table(tracks);
-    tracks.forEach((track) => {
-      const capabilities = track.getCapabilities();
-      if (capabilities.height && capabilities.height.max)
-        height =
-          height <= capabilities.height?.max
-            ? height
-            : capabilities.height?.max;
-
-      if (capabilities.width && capabilities.width.max)
-        width =
-          width <= capabilities.width?.max ? width : capabilities.width?.max;
-      const videoConstraints = {
-        height: height,
-        width: width,
-      };
-      track.applyConstraints(videoConstraints);
-    });
-  };
-
   // WebRTC code
   let roomName = $state("");
   let userName = $state("");
   import { io } from "socket.io-client";
+  import MediaControl from "./components/MediaControl.svelte";
+  import Calls from "./components/Calls.svelte";
 
   const socket = io("http://localhost:8080", {
     transports: ["websocket", "polling"],
@@ -203,7 +159,6 @@
     </fieldset>
     <div role="group">
       <button>Start Call </button>
-      <!-- <button type="submit" command="close" commandfor="call-info">Join Call</button> -->
     </div>
   </form>
 </dialog>
@@ -213,128 +168,21 @@
   <span>Username: <span>{userName}</span></span>
 </div>
 <main>
-  <section class="options">
-    <button id="permsButton" onclick={getPermissions}>Get Permissions</button>
-    <button onclick={toggleFeed} disabled={!hasPerms} aria-pressed={playing}
-      >{playing ? "Stop" : "Show"} my video</button
-    >
-    <div class="screen-size">
-      <button disabled={!hasPerms} onclick={changeSize}>
-        Change screen size</button
-      >
-      <div>
-        <input bind:value={width} type="number" />
-        <input bind:value={height} type="number" />
-      </div>
-      <button onclick={startCall}>Start Call</button>
-    </div>
-    <!-- <button disabled={!hasPerms} onclick={startRecording}
-      >Start Recording</button
-    >
-    <button disabled={!hasPerms || recording == 0} onclick={pauseRecording}
-      >{recording == 2 ? "Unpause" : "Pause"} Recording</button
-    >
-    <button disabled={!hasPerms || recording == 0} onclick={stopRecording}
-      >Stop Recording</button
-    >
-    <button disabled={!hasPerms} onclick={playRecording}>Play Recording</button>
-    <button onclick={shareScreen} aria-pressed={screenSharing}
-      >{screenSharing ? "Stop Sharing" : "Share Screen"}</button
-    > -->
-    <!-- <div class="input">
-      <label for="audio-input">Select Audio Input</label>
-      <select onchange={changeAudioInput} name="audio-input" id="audio-input"
-        ><option value="">Select</option>
-        {#each audioInputDevices as audioInputDevice}
-          <option value={audioInputDevice.deviceId}
-            >{audioInputDevice.label}</option
-          >
-        {/each}
-      </select>
-    </div>
-    <div class="input">
-      <label for="audio-output">Select Audio Output</label>
-      <select onchange={changeAudioOutput} name="audio-output" id="audio-output"
-        ><option value="">Select</option>
-        {#each audioOutputDevices as audioOutputDevice}
-          <option value={audioOutputDevice.deviceId}
-            >{audioOutputDevice.label}</option
-          >
-        {/each}
-      </select>
-    </div>
-    <div class="input">
-      <label for="video-input">Select Video Input</label>
-      <select onchange={changeVideoInput} name="video-input" id="video-input"
-        ><option value="">Select</option>
-        {#each videoInputDevices as videoInputDevice}
-          <option value={videoInputDevice.deviceId}
-            >{videoInputDevice.label}</option
-          >
-        {/each}</select
-      >
-    </div> -->
-  </section>
-  <section class="feed">
-    <div>
-      <h2>Incoming Feed</h2>
-      <video id="incoming" bind:this={incomingVideo} autoplay playsinline
-      ></video>
-    </div>
-    <div>
-      <h2>Outgoing Feed</h2>
-      <video id="outgoing" bind:this={outgoingVideo} autoplay muted playsinline
-      ></video>
-    </div>
-    <div>
-      <h2>Extra</h2>
-      <video id="screen-share" bind:this={screenShareVideo} autoplay playsinline
-      ></video>
-    </div>
-  </section>
+  <MediaControl {stream} {outgoingVideo} {hasPerms} {height} {playing} {startCall} {width} />
+  <Calls bind:incomingVideo bind:outgoingVideo />
+
 </main>
 
 <style>
-  video {
-    background-color: cornflowerblue;
-  }
+
   main {
     display: flex;
     padding: 4rem 2rem;
     justify-content: space-between;
   }
-  .options,
-  .feed {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  #permsButton {
-    background-color: #005f3d;
-    border: 0;
-  }
-  main input {
-    width: 8rem;
-  }
 
-  #outgoing,
-  #incoming,
-  #screen-share {
-    max-width: 480px;
-  }
 
-  select {
-    max-width: 16.5rem;
-  }
-  .screen-size {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
 
-  div[role="group"] input:hover {
-    border: darkgrey 1px solid;
-  }
   .user-info {
     display: flex;
     justify-content: space-between;
@@ -346,3 +194,4 @@
     }
   }
 </style>
+
