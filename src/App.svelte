@@ -2,28 +2,50 @@
   import { onMount } from "svelte";
 
   // state
+
   let playing = $state(false);
   let hasPerms = $state(false);
-  let width = $state(480);
-  let height = $state(240);
+  // Video elements for incoming and outgoing streams
   let outgoingVideo: HTMLVideoElement | undefined = $state();
   let incomingVideo: HTMLVideoElement | undefined = $state();
+  // to store the devices from the stream
+  let audioInputDevices: MediaDeviceInfo[] = $state([]);
+  let audioOutputDevices: MediaDeviceInfo[] = $state([]);
+  let videoInputDevices: MediaDeviceInfo[] = $state([]);
+  // The stream. Client's stream
+  let stream: MediaStream | null = $state(null);
 
-  let stream: MediaStream | null;
+  // default constraints
+  // for deciding the tracks and their configurations that the stream would have
   const constraints: MediaStreamConstraints = { video: true, audio: true };
 
+  // gets permissions for IO at mount time
   const getPermissions = async () => {
-    console.log("get perms ran!");
+    console.info("getPermissions fired!");
 
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (stream) {
         hasPerms = true;
-        console.log("stream is available");
+        console.log("Stream is created");
+      } else {
+        console.error("stream does not exist");
       }
     } catch (error) {
       console.error(error);
     }
+  };
+  const getDevices = async () => {
+    console.info("getDevices fired!");
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    console.log("Devices:");
+    console.table(devices);
+    audioInputDevices = devices.filter((device) => device.kind == "audioinput");
+    audioOutputDevices = devices.filter(
+      (device) => device.kind == "audiooutput",
+    );
+    videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
 
   // WebRTC code
@@ -114,11 +136,16 @@
       }
     }
   });
+
   const startCall = async () => {
+    console.info("startCall fired!")
     if (stream)
       stream.getTracks().forEach((track) => {
         if (stream) pc.addTrack(track, stream);
       });
+    else {
+      console.error("stream is undefined");
+    }
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -127,7 +154,7 @@
 
   onMount(async () => {
     await getPermissions();
-    // await getDevices();
+    await getDevices();
   });
 </script>
 
@@ -168,20 +195,24 @@
   <span>Username: <span>{userName}</span></span>
 </div>
 <main>
-  <MediaControl {stream} {outgoingVideo} {hasPerms} {height} {playing} {startCall} {width} />
   <Calls bind:incomingVideo bind:outgoingVideo />
-
+  <MediaControl
+    bind:stream
+    {audioInputDevices}
+    {audioOutputDevices}
+    {videoInputDevices}
+    {outgoingVideo}
+    {hasPerms}
+    {playing}
+  />
 </main>
 
 <style>
-
   main {
     display: flex;
-    padding: 4rem 2rem;
-    justify-content: space-between;
+    flex-direction: column;
+    padding: 0 2rem;
   }
-
-
 
   .user-info {
     display: flex;
@@ -194,4 +225,3 @@
     }
   }
 </style>
-
