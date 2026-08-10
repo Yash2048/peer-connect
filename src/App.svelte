@@ -3,8 +3,7 @@
 
   // state
 
-  let playing = $state(false);
-  let hasPerms = $state(false);
+  let videoPlaying = $state(true);
   // Video elements for incoming and outgoing streams
   let outgoingVideo: HTMLVideoElement | undefined = $state();
   let incomingVideo: HTMLVideoElement | undefined = $state();
@@ -17,7 +16,14 @@
 
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
-  const constraints: MediaStreamConstraints = { video: true, audio: true };
+  let constraints: MediaStreamConstraints = $state({
+    video: {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      aspectRatio: { ideal: 16 / 9 },
+    },
+    audio: true,
+  });
 
   // gets permissions for IO at mount time
   const getPermissions = async () => {
@@ -26,8 +32,13 @@
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (stream) {
-        hasPerms = true;
         console.log("Stream is created");
+        if (!outgoingVideo) {
+          console.error("outgoingVideo is undefined.");
+          return;
+        }
+        outgoingVideo.srcObject = stream;
+        videoPlaying = true;
       } else {
         console.error("stream does not exist");
       }
@@ -35,6 +46,7 @@
       console.error(error);
     }
   };
+
   const getDevices = async () => {
     console.info("getDevices fired!");
 
@@ -138,7 +150,7 @@
   });
 
   const startCall = async () => {
-    console.info("startCall fired!")
+    console.info("startCall fired!");
     if (stream)
       stream.getTracks().forEach((track) => {
         if (stream) pc.addTrack(track, stream);
@@ -190,35 +202,54 @@
   </form>
 </dialog>
 
-<div class="user-info">
-  <span>Room No: <span>{roomName}</span></span>
-  <span>Username: <span>{userName}</span></span>
-</div>
 <main>
-  <Calls bind:incomingVideo bind:outgoingVideo />
+  <div class="user-info">
+    <span>Room No: <span>{roomName}</span></span>
+    <span>Username: <span>{userName}</span></span>
+  </div>
+  <Calls bind:incomingVideo bind:outgoingVideo {videoPlaying} />
   <MediaControl
     bind:stream
+    bind:constraints
     {audioInputDevices}
     {audioOutputDevices}
     {videoInputDevices}
     {outgoingVideo}
-    {hasPerms}
-    {playing}
+    bind:videoPlaying
   />
 </main>
 
 <style>
+  :global(*) {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  :global(html) {
+    height: 100%;
+  }
+  :global(body) {
+    height: 100%;
+  }
+
   main {
+    margin: auto;
     display: flex;
     flex-direction: column;
-    padding: 0 2rem;
+    padding: 0.5rem 2rem;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid saddlebrown;
+    height: 100%;
+    box-sizing: border-box;
+    gap: 2rem;
   }
 
   .user-info {
     display: flex;
     justify-content: space-between;
     span {
-      padding: 0.5rem 1rem;
+      padding: 0 1rem;
       span {
         text-decoration: underline;
       }

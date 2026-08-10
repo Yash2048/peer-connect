@@ -1,54 +1,117 @@
 <script lang="ts">
   import Icon from "@iconify/svelte";
   let {
-    playing,
+    videoPlaying = $bindable(),
     stream = $bindable(),
     outgoingVideo,
     audioInputDevices,
     audioOutputDevices,
     videoInputDevices,
-    hasPerms,
+    constraints = $bindable(),
   }: {
-    playing: boolean;
+    videoPlaying: boolean;
     stream: MediaStream | null;
     outgoingVideo: HTMLVideoElement | undefined;
     audioInputDevices: MediaDeviceInfo[];
     audioOutputDevices: MediaDeviceInfo[];
     videoInputDevices: MediaDeviceInfo[];
-    hasPerms: boolean;
+    constraints: MediaStreamConstraints;
   } = $props();
 
-  const toggleFeed = () => {
-    console.log("toggleFeed is working...");
-    console.log("playing = ", playing);
+  let audioPlaying = $state(true);
+  $inspect(constraints).with(console.log);
 
-    if (playing) {
-      console.log("Stopping Tracks");
+  const toggleVideo = async () => {
+    console.info("toggleFeed fired!");
 
-      const tracks = stream?.getTracks();
-      // tracks?.forEach((track) => track.stop());
-      if (outgoingVideo) outgoingVideo.srcObject = null;
-      // hasPerms = false;
+    if (videoPlaying) {
+      constraints.video = false;
+      const videoTracks = stream?.getVideoTracks();
+      videoTracks?.forEach((track) => {
+        track.stop();
+        stream?.removeTrack(track);
+      });
+      if (!outgoingVideo) {
+        console.error("outgoingVideo is undefined.");
+        return;
+      }
+      if (!stream) {
+        console.error("stream is undefined.");
+        return;
+      }
+      outgoingVideo.srcObject = stream;
+      videoPlaying = false;
     } else {
-      if (outgoingVideo) {
+      try {
+        const videoConstraints = {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            aspectRatio: { ideal: 16 / 9 },
+          },
+        };
+        const videoStream =
+          await navigator.mediaDevices.getUserMedia(videoConstraints);
+        const videoTrack = videoStream.getVideoTracks()[0];
+
+        console.log(stream);
+        if (!outgoingVideo) {
+          console.error("outgoingVideo is undefined.");
+          return;
+        }
+
+        if (!stream) {
+          stream = videoStream;
+        } else {
+          stream.addTrack(videoTrack);
+        }
         outgoingVideo.srcObject = stream;
-      } else {
-        console.error("outgoingVideo is undefined");
+        videoPlaying = true;
+      } catch (error) {
+        console.error(error);
       }
     }
-    playing = !playing;
+  };
+
+  const toggleAudio = async () => {
+    console.info("toggleAudio fired!");
+    if (audioPlaying) {
+      const audioTracks = stream?.getAudioTracks();
+      audioTracks?.forEach((track) => {
+        track.stop();
+        stream?.removeTrack(track);
+      });
+      if (outgoingVideo) outgoingVideo.srcObject = stream;
+      audioPlaying = false;
+    } else {
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        const audioTrack = audioStream.getAudioTracks()[0];
+
+        if (!outgoingVideo) return;
+        if (!stream) {
+          stream = audioStream;
+        } else {
+          stream.addTrack(audioTrack);
+        }
+        audioPlaying = true;
+      } catch (error) {
+        console.error(error);
+        if (outgoingVideo) outgoingVideo.srcObject = stream;
+      }
+    }
   };
 
   const changeAudioInput = async (e: Event) => {
     console.info("changeAudioInput fired!");
     const deviceId = (e.target as HTMLSelectElement).value;
-    const newConstraints = {
-      audio: { deviceId: { exact: deviceId } },
-      video: true,
-    };
+
+    constraints.audio = { deviceId: { exact: deviceId } };
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia(newConstraints);
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log(stream);
       if (outgoingVideo && stream) outgoingVideo.srcObject = stream;
     } catch (error) {
@@ -121,8 +184,8 @@
       >
         <Icon height="24px" icon="tabler:dots" />
       </button>
-      <button class="audio-toggle-button" onclick={() => {}}>
-        {#if playing}
+      <button class="audio-toggle-button" onclick={toggleAudio}>
+        {#if audioPlaying}
           <Icon height="24px" icon="material-symbols:mic-outline" />
         {:else}
           <Icon height="24px" icon="material-symbols:mic-off-outline" />
@@ -150,8 +213,8 @@
       >
         <Icon height="24px" icon="tabler:dots" />
       </button>
-      <button class="video-toggle-button" onclick={toggleFeed}>
-        {#if playing}
+      <button class="video-toggle-button" onclick={toggleVideo}>
+        {#if videoPlaying}
           <Icon height="24px" icon="mdi:camera-outline" />
         {:else}
           <Icon height="24px" icon="mdi:camera-off-outline" />
@@ -180,7 +243,7 @@
   }
 
   .options {
-    position: fixed;
+    /* position: fixed; */
     bottom: 1rem;
     left: 0;
     right: 0;
