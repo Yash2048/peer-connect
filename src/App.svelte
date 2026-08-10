@@ -13,7 +13,7 @@
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
   // The stream. Client's stream
   let stream: MediaStream | null = $state(null);
-
+  let connected: boolean = $state(false);
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let constraints: MediaStreamConstraints = $state({
@@ -95,6 +95,10 @@
   };
 
   pc.ontrack = (event) => {
+    connected = true;
+    console.info("User connected!")
+    console.log(event);
+    
     if (incomingVideo) incomingVideo.srcObject = event.streams[0];
   };
 
@@ -207,7 +211,7 @@
     <span>Room No: <span>{roomName}</span></span>
     <span>Username: <span>{userName}</span></span>
   </div>
-  <Calls bind:incomingVideo bind:outgoingVideo {videoPlaying} />
+  <Calls bind:incomingVideo bind:outgoingVideo {videoPlaying} {connected} />
   <MediaControl
     bind:stream
     bind:constraints

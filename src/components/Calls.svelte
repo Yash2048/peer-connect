@@ -1,16 +1,32 @@
 <script lang="ts">
-  let { incomingVideo = $bindable(), outgoingVideo = $bindable(), videoPlaying } = $props();
+  let {
+    incomingVideo = $bindable(),
+    outgoingVideo = $bindable(),
+    videoPlaying,
+    connected,
+  } = $props();
+
 </script>
 
 <section class="feed">
   <div>
-  <!-- {#if videoPlaying == true} -->
-    <video   id="outgoing" bind:this={outgoingVideo} autoplay muted playsinline
+    <video
+      class="{connected ? "minimize" : ""} outgoing"
+      id="outgoing"
+      bind:this={outgoingVideo}
+      autoplay
+      muted
+      playsinline
     ></video>
-  <!-- {/if} -->
+    <video
+      class="{connected ? "" : "hidden"} incoming"
+      id="incoming"
+      bind:this={incomingVideo}
+      autoplay
+      muted
+      playsinline
+    ></video>
   </div>
-  <!-- <video  id="incoming" bind:this={incomingVideo}  autoplay muted playsinline
-    ></video> -->
 </section>
 
 <style>
@@ -22,7 +38,8 @@
     justify-content: center;
     align-items: center;
     min-height: 0;
-    container-type: size; 
+    container-type: size;
+    position: relative;
 
     div {
       aspect-ratio: 16 / 9;
@@ -33,14 +50,33 @@
       width: min(100%, calc(100cqh * 16 / 9));
       height: auto;
       display: flex;
+      z-index: 1;
+
+
     }
   }
-  
-  #outgoing {
+
+  .outgoing {
     /* display: none; */
     width: 100%;
+
     /* height: 100%; */
     scale: -1 1;
     object-fit: fill;
+  }
+
+  .hidden {
+    display: none;
+  }
+  .minimize {
+    /* ADDED */
+    position: absolute;
+    bottom: 1rem;
+    right:0;
+    width: 10rem;
+    /* height: 10rem; */
+    aspect-ratio: 16 / 9;
+    border-radius: 0.5rem;
+    overflow: hidden;
   }
 </style>
