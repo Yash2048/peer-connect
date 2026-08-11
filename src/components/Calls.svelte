@@ -43,7 +43,7 @@
 
     div {
       aspect-ratio: 16 / 9;
-      background-color: antiquewhite;
+      background-color: rgb(144, 132, 116);
       border-radius: 1rem;
       overflow: hidden;
 
@@ -61,7 +61,7 @@
     width: 100%;
 
     /* height: 100%; */
-    scale: -1 1;
+    scale: -1.1 1.1;
     object-fit: fill;
   }
 
@@ -69,12 +69,10 @@
     display: none;
   }
   .minimize {
-    /* ADDED */
     position: absolute;
     bottom: 1rem;
     right:0;
     width: 10rem;
-    /* height: 10rem; */
     aspect-ratio: 16 / 9;
     border-radius: 0.5rem;
     overflow: hidden;

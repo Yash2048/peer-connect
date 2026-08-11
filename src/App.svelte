@@ -14,6 +14,7 @@
   // The stream. Client's stream
   let stream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
+  let connectionState: RTCPeerConnectionState = $state("new");
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let constraints: MediaStreamConstraints = $state({
@@ -31,17 +32,18 @@
 
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (stream) {
-        console.log("Stream is created");
-        if (!outgoingVideo) {
-          console.error("outgoingVideo is undefined.");
-          return;
-        }
-        outgoingVideo.srcObject = stream;
-        videoPlaying = true;
-      } else {
+      if (!stream) {
         console.error("stream does not exist");
+        return;
       }
+      console.log("Stream is created");
+      if (!outgoingVideo) {
+        console.error("outgoingVideo is undefined.");
+        return;
+      }
+
+      outgoingVideo.srcObject = stream;
+      videoPlaying = true;
     } catch (error) {
       console.error(error);
     }
@@ -66,6 +68,8 @@
   import { io } from "socket.io-client";
   import MediaControl from "./components/MediaControl.svelte";
   import Calls from "./components/Calls.svelte";
+  let makingOffer = false;
+  let isInitiator = false;
 
   const socket = io("http://localhost:8080", {
     transports: ["websocket", "polling"],
@@ -96,10 +100,32 @@
 
   pc.ontrack = (event) => {
     connected = true;
-    console.info("User connected!")
+    console.info("User connected!");
     console.log(event);
-    
+
     if (incomingVideo) incomingVideo.srcObject = event.streams[0];
+  };
+
+  pc.onconnectionstatechange = (event) => {
+    connectionState = pc.connectionState;
+    if (connectionState == "disconnected") {
+      connected = false;
+      if (incomingVideo) incomingVideo.srcObject = null;
+    }
+  };
+
+  pc.onnegotiationneeded = async () => {
+    try {
+      makingOffer = true;
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      const message: SignalMessage = { type: "offer", offer };
+      socket.emit("signal", { room: roomName, data: message });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      makingOffer = false;
+    }
   };
 
   const joinRoom = () => {
@@ -107,6 +133,7 @@
   };
 
   socket.on("joined", async ({ isInitiator }) => {
+    isInitiator = isInitiator;
     if (isInitiator) {
     } else {
       startCall();
@@ -114,17 +141,35 @@
   });
 
   // Handle incoming signals
+  let ignoreOffer = false;
+  const polite = !isInitiator; // one peer must be polite, the other impolite
+
   socket.on("signal", async (msg: SignalMessage) => {
     if (msg.type === "offer") {
-      if (pc.signalingState !== "stable") {
+      const offerCollision = makingOffer || pc.signalingState !== "stable";
+
+      ignoreOffer = !polite && offerCollision;
+      if (ignoreOffer) return;
+
+      if (offerCollision) {
+        await pc.setLocalDescription({ type: "rollback" });
+      }
+
+      if (!stream) {
+        console.error("stream is undefined");
         return;
       }
 
-      if (stream) {
-        stream.getTracks().forEach((track) => {
-          if (stream) pc.addTrack(track, stream);
-        });
-      }
+      stream.getTracks().forEach((track) => {
+        const alreadySent = pc.getSenders().some((s) => s.track === track);
+        if (!alreadySent) {
+          if (!stream) {
+            console.error("stream is undefined");
+            return;
+          }
+          pc.addTrack(track, stream);
+        }
+      });
 
       await pc.setRemoteDescription(msg.offer);
       remoteDescSet = true;
@@ -137,7 +182,7 @@
       socket.emit("signal", {
         room: roomName,
         userName: userName,
-        data: { type: "answer", answer },
+        data: { type: "answer", answer: pc.localDescription },
       });
     } else if (msg.type === "answer") {
       await pc.setRemoteDescription(msg.answer);
@@ -145,10 +190,14 @@
       for (const c of pendingCandidates) await pc.addIceCandidate(c);
       pendingCandidates = [];
     } else if (msg.type === "ice-candidate") {
-      if (remoteDescSet) {
-        await pc.addIceCandidate(msg.candidate);
-      } else {
-        pendingCandidates.push(msg.candidate);
+      try {
+        if (remoteDescSet) {
+          await pc.addIceCandidate(msg.candidate);
+        } else {
+          pendingCandidates.push(msg.candidate);
+        }
+      } catch (err) {
+        if (!ignoreOffer) throw err;
       }
     }
   });
@@ -209,17 +258,19 @@
 <main>
   <div class="user-info">
     <span>Room No: <span>{roomName}</span></span>
+    <span> State: <span>{connectionState}</span></span>
     <span>Username: <span>{userName}</span></span>
   </div>
   <Calls bind:incomingVideo bind:outgoingVideo {videoPlaying} {connected} />
   <MediaControl
     bind:stream
+    bind:videoPlaying
     bind:constraints
     {audioInputDevices}
     {audioOutputDevices}
     {videoInputDevices}
     {outgoingVideo}
-    bind:videoPlaying
+    {pc}
   />
 </main>
 

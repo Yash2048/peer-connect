@@ -8,6 +8,7 @@
     audioOutputDevices,
     videoInputDevices,
     constraints = $bindable(),
+    pc,
   }: {
     videoPlaying: boolean;
     stream: MediaStream | null;
@@ -16,6 +17,7 @@
     audioOutputDevices: MediaDeviceInfo[];
     videoInputDevices: MediaDeviceInfo[];
     constraints: MediaStreamConstraints;
+    pc: RTCPeerConnection;
   } = $props();
 
   let audioPlaying = $state(true);
@@ -26,10 +28,17 @@
 
     if (videoPlaying) {
       constraints.video = false;
+      const senders = pc.getSenders();
       const videoTracks = stream?.getVideoTracks();
+
       videoTracks?.forEach((track) => {
+        senders.forEach((sender) => {
+          if (sender.track === track) {
+            pc.removeTrack(sender);
+          }
+        });
         track.stop();
-        stream?.removeTrack(track);
+        if (stream) stream.removeTrack(track);
       });
       if (!outgoingVideo) {
         console.error("outgoingVideo is undefined.");
@@ -42,14 +51,14 @@
       outgoingVideo.srcObject = stream;
       videoPlaying = false;
     } else {
+      const videoConstraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16 / 9 },
+        },
+      };
       try {
-        const videoConstraints = {
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            aspectRatio: { ideal: 16 / 9 },
-          },
-        };
         const videoStream =
           await navigator.mediaDevices.getUserMedia(videoConstraints);
         const videoTrack = videoStream.getVideoTracks()[0];
@@ -65,6 +74,7 @@
         } else {
           stream.addTrack(videoTrack);
         }
+        pc.addTrack(videoTrack, stream)
         outgoingVideo.srcObject = stream;
         videoPlaying = true;
       } catch (error) {
