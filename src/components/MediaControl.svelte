@@ -4,6 +4,7 @@
     videoPlaying = $bindable(),
     stream = $bindable(),
     outgoingVideo,
+    incomingVideo,
     audioInputDevices,
     audioOutputDevices,
     videoInputDevices,
@@ -13,6 +14,7 @@
     videoPlaying: boolean;
     stream: MediaStream | null;
     outgoingVideo: HTMLVideoElement | undefined;
+    incomingVideo: HTMLVideoElement | undefined;
     audioInputDevices: MediaDeviceInfo[];
     audioOutputDevices: MediaDeviceInfo[];
     videoInputDevices: MediaDeviceInfo[];
@@ -74,8 +76,8 @@
         } else {
           stream.addTrack(videoTrack);
         }
-        pc.addTrack(videoTrack, stream)
-        outgoingVideo.srcObject = stream;
+        pc.addTrack(videoTrack, stream);
+        // outgoingVideo.srcObject = stream;
         videoPlaying = true;
       } catch (error) {
         console.error(error);
@@ -106,6 +108,8 @@
         } else {
           stream.addTrack(audioTrack);
         }
+        pc.addTrack(audioTrack, stream);
+
         audioPlaying = true;
       } catch (error) {
         console.error(error);
@@ -116,48 +120,86 @@
 
   const changeAudioInput = async (e: Event) => {
     console.info("changeAudioInput fired!");
+    if (!audioPlaying) {
+      console.warn("Can't change Audio Input while muted.");
+      return;
+    }
     const deviceId = (e.target as HTMLSelectElement).value;
 
-    constraints.audio = { deviceId: { exact: deviceId } };
+    const audioConstraints: MediaStreamConstraints = {
+      audio: { deviceId: { exact: deviceId } },
+    };
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log(stream);
-      if (outgoingVideo && stream) outgoingVideo.srcObject = stream;
+      const audioStream =
+        await navigator.mediaDevices.getUserMedia(audioConstraints);
+      const audioTrack = audioStream.getAudioTracks()[0];
+
+      if (!stream) {
+        stream = audioStream;
+      } else {
+        const oldAudioTrack = stream.getAudioTracks()[0];
+        oldAudioTrack.stop();
+        stream.removeTrack(oldAudioTrack);
+        stream.addTrack(audioTrack);
+      }
+      const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
+      await sender?.replaceTrack(audioTrack);
+      // if (outgoingVideo && stream) outgoingVideo.srcObject = stream;
     } catch (error) {
       console.error(error);
     }
   };
   const changeAudioOutput = async (e: Event) => {
     console.info("changeAudioOutput fired!");
-
+    const deviceId = (e.target as HTMLSelectElement).value;
+    if (!incomingVideo) {
+      console.error("incomingVideo doesn't exist");
+      return;
+    }
+    if (!("setSinkId" in incomingVideo)) {
+      console.error("setSinkId not supported in this browser");
+      return;
+    }
     try {
-      const selectEle: HTMLSelectElement | null = e.target as HTMLSelectElement;
-      if (!selectEle) {
-        console.error("Select Element doesn't exist");
-        return;
-      }
-      if (!outgoingVideo) {
-        console.error("outgoingVideo doesn't exist");
-        return;
-      }
-      await outgoingVideo.setSinkId(selectEle.value);
-      console.log("Device changed to ", selectEle.value);
+      await incomingVideo.setSinkId(deviceId);
+      console.log("Device changed to", deviceId);
     } catch (error) {
       console.error(error);
     }
   };
   const changeVideoInput = async (e: Event) => {
     console.info("changeVideoInput fired!");
+    if (!videoPlaying) {
+      console.warn("Can't change Video Input while video is off.");
+      return;
+    }
     const deviceId = (e.target as HTMLSelectElement).value;
-    const newConstraints = {
+
+    const videoConstraints: MediaStreamConstraints = {
       video: { deviceId: { exact: deviceId } },
-      audio: true,
     };
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia(newConstraints);
-      console.log(stream);
+      const newStream =
+        await navigator.mediaDevices.getUserMedia(videoConstraints);
+      const newVideoTrack = newStream.getVideoTracks()[0];
+
+      if (!stream) {
+        stream = newStream;
+      } else {
+        const oldVideoTrack = stream.getVideoTracks()[0];
+
+        if (oldVideoTrack) {
+          oldVideoTrack.stop();
+          stream.removeTrack(oldVideoTrack);
+        }
+        stream.addTrack(newVideoTrack);
+      }
+
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      await sender?.replaceTrack(newVideoTrack);
+
       if (outgoingVideo && stream) outgoingVideo.srcObject = stream;
     } catch (error) {
       console.error(error);

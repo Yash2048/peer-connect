@@ -14,7 +14,7 @@
   // The stream. Client's stream
   let stream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
-  let connectionState: RTCPeerConnectionState = $state("new");
+  let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let constraints: MediaStreamConstraints = $state({
@@ -71,7 +71,7 @@
   let makingOffer = false;
   let isInitiator = false;
 
-  const socket = io("http://localhost:8080", {
+  const socket = io("https://pegasus-helped-termite.ngrok-free.app", {
     transports: ["websocket", "polling"],
     upgrade: true,
   });
@@ -88,33 +88,52 @@
 
   let pendingCandidates: RTCIceCandidateInit[] = [];
   let remoteDescSet = false;
+  let ignoreOffer = false;
+  const polite = !isInitiator; // one peer must be polite, the other impolite
 
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
+  // functions
+  const joinRoom = () => {
+    if (roomName) socket.emit("join", roomName);
+  };
+
+  const startCall = async () => {
+    console.info("startCall fired!");
+    if (stream)
+      stream.getTracks().forEach((track) => {
+        if (stream) pc.addTrack(track, stream);
+      });
+    else {
+      console.error("stream is undefined");
+    }
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit("signal", { room: roomName, data: { type: "offer", offer } });
+  };
+
+  // handlers
+  const handleICECandidateEvent = (e: RTCPeerConnectionIceEvent) => {
+    if (e.candidate) {
       socket.emit("signal", {
         room: roomName,
-        data: { type: "ice-candidate", candidate: event.candidate.toJSON() },
+        data: { type: "ice-candidate", candidate: e.candidate.toJSON() },
       });
     }
   };
-
-  pc.ontrack = (event) => {
+  const handleTrackEvent = (e: RTCTrackEvent) => {
     connected = true;
     console.info("User connected!");
-    console.log(event);
+    console.log(e);
+    const localStream = e.streams[0];
+    localStream.onremovetrack = (e) => {
+      if (e.track.kind == "video") {
+        if (incomingVideo) incomingVideo.srcObject = null;
+      }
+    };
 
-    if (incomingVideo) incomingVideo.srcObject = event.streams[0];
+    if (incomingVideo) incomingVideo.srcObject = e.streams[0];
   };
-
-  pc.onconnectionstatechange = (event) => {
-    connectionState = pc.connectionState;
-    if (connectionState == "disconnected") {
-      connected = false;
-      if (incomingVideo) incomingVideo.srcObject = null;
-    }
-  };
-
-  pc.onnegotiationneeded = async () => {
+  const handleNegotiationNeededEvent = async () => {
     try {
       makingOffer = true;
       const offer = await pc.createOffer();
@@ -127,11 +146,27 @@
       makingOffer = false;
     }
   };
-
-  const joinRoom = () => {
-    if (roomName) socket.emit("join", roomName);
+  const handleConnectionStateChangeEvent = (e: Event) => {
+    connectionState = pc.connectionState;
+    if (connectionState == "disconnected") {
+      connected = false;
+      if (incomingVideo) incomingVideo.srcObject = null;
+    }
   };
+  const handleRemoveTrackEvent = (e: Event) => {};
 
+  const handleICEConnectionStateChangeEvent = (e: Event) => {};
+
+  const handleICEGatheringStateChangeEvent = (e: Event) => {};
+  const handleSignalingStateChangeEvent = (e: Event) => {};
+
+  // events
+  pc.onicecandidate = handleICECandidateEvent;
+  pc.ontrack = handleTrackEvent;
+  pc.onconnectionstatechange = handleConnectionStateChangeEvent;
+  pc.onnegotiationneeded = handleNegotiationNeededEvent;
+
+  //socket
   socket.on("joined", async ({ isInitiator }) => {
     isInitiator = isInitiator;
     if (isInitiator) {
@@ -139,11 +174,6 @@
       startCall();
     }
   });
-
-  // Handle incoming signals
-  let ignoreOffer = false;
-  const polite = !isInitiator; // one peer must be polite, the other impolite
-
   socket.on("signal", async (msg: SignalMessage) => {
     if (msg.type === "offer") {
       const offerCollision = makingOffer || pc.signalingState !== "stable";
@@ -202,20 +232,7 @@
     }
   });
 
-  const startCall = async () => {
-    console.info("startCall fired!");
-    if (stream)
-      stream.getTracks().forEach((track) => {
-        if (stream) pc.addTrack(track, stream);
-      });
-    else {
-      console.error("stream is undefined");
-    }
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit("signal", { room: roomName, data: { type: "offer", offer } });
-  };
+  // Handle incoming signals
 
   onMount(async () => {
     await getPermissions();
@@ -270,6 +287,7 @@
     {audioOutputDevices}
     {videoInputDevices}
     {outgoingVideo}
+    {incomingVideo}
     {pc}
   />
 </main>
@@ -309,5 +327,8 @@
         text-decoration: underline;
       }
     }
+  }
+  dialog {
+    border: 0;
   }
 </style>

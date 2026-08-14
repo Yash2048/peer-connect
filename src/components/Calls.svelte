@@ -23,7 +23,6 @@
       id="incoming"
       bind:this={incomingVideo}
       autoplay
-      muted
       playsinline
     ></video>
   </div>
