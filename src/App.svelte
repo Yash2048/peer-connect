@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "./app.css";
   import { onMount } from "svelte";
 
   // state
@@ -233,18 +234,20 @@
   });
 
   // Handle incoming signals
+  let a: HTMLDialogElement;
 
   onMount(async () => {
+    a.showModal();
     await getPermissions();
     await getDevices();
   });
 </script>
 
-<dialog id="call-info" open>
+<dialog bind:this={a} id="call-info">
   <form method="dialog" onsubmit={joinRoom}>
     <fieldset>
       <label>
-        Room Name
+        <span>Room Name</span>
         <input
           type="text"
           name="room-name"
@@ -255,7 +258,7 @@
         />
       </label>
       <label>
-        User Name
+        <span>User Name</span>
         <input
           type="text"
           name="user-name"
@@ -265,10 +268,8 @@
           required
         />
       </label>
+      <button>Start Call</button>
     </fieldset>
-    <div role="group">
-      <button>Start Call </button>
-    </div>
   </form>
 </dialog>
 
@@ -293,28 +294,15 @@
 </main>
 
 <style>
-  :global(*) {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  :global(html) {
-    height: 100%;
-  }
-  :global(body) {
-    height: 100%;
-  }
-
   main {
+    background-color: var(--bg);
     margin: auto;
     display: flex;
     flex-direction: column;
     padding: 0.5rem 2rem;
     justify-content: space-between;
     align-items: center;
-    border: 1px solid saddlebrown;
     height: 100%;
-    box-sizing: border-box;
     gap: 2rem;
   }
 
@@ -330,5 +318,89 @@
   }
   dialog {
     border: 0;
+  }
+
+  dialog#call-info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    border: none;
+    border-radius: 1rem;
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    width: min(360px, 90vw);
+    font-family: system-ui, sans-serif;
+  }
+
+  dialog#call-info::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+  }
+
+  dialog#call-info form {
+    padding: 1.75rem;
+  }
+
+  dialog#call-info fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  dialog#call-info label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  dialog#call-info input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    color: var(--text);
+    font-size: 0.95rem;
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+    &::placeholder {
+      color: var(--muted);
+      opacity: 0.7;
+    }
+    &:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.2);
+    }
+  }
+
+  dialog#call-info button {
+    margin-top: 0.5rem;
+    background: var(--accent);
+    color: var(--accent-clr);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      transform 0.1s ease;
+  }
+
+  dialog#call-info button:hover {
+    background: var(--accent-hover);
+  }
+
+  dialog#call-info button:active {
+    transform: scale(0.98);
   }
 </style>

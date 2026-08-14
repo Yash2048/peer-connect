@@ -1,5 +1,6 @@
 <script lang="ts">
-  let {
+import '../app.css'
+let {
     incomingVideo = $bindable(),
     outgoingVideo = $bindable(),
     videoPlaying,
@@ -42,25 +43,22 @@
 
     div {
       aspect-ratio: 16 / 9;
-      background-color: rgb(144, 132, 116);
-      border-radius: 1rem;
+      background-color: var(--muted);
+      border-radius: 0.6rem;
       overflow: hidden;
 
       width: min(100%, calc(100cqh * 16 / 9));
       height: auto;
       display: flex;
       z-index: 1;
-
-
     }
   }
 
   .outgoing {
     /* display: none; */
     width: 100%;
-
     /* height: 100%; */
-    scale: -1.1 1.1;
+    scale: -1.175 1.175;
     object-fit: fill;
   }
 

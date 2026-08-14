@@ -1,4 +1,5 @@
 <script lang="ts">
+  import "../app.css";
   import Icon from "@iconify/svelte";
   let {
     videoPlaying = $bindable(),
@@ -93,7 +94,7 @@
         track.stop();
         stream?.removeTrack(track);
       });
-      if (outgoingVideo) outgoingVideo.srcObject = stream;
+      // if (outgoingVideo) outgoingVideo.srcObject = stream;
       audioPlaying = false;
     } else {
       try {
@@ -275,7 +276,7 @@
     </span>
   </div>
 
-  <button>
+  <button class="screen-share-toggle">
     {#if false}
       <Icon height="24px" icon="material-symbols:screen-share" />
     {:else}
@@ -289,6 +290,7 @@
 </section>
 
 <style>
+
   section {
     display: flex;
     justify-content: center;
@@ -310,11 +312,12 @@
     height: 3rem;
     width: 3rem;
     border-radius: 50%;
+    background-color: var(--accent);
   }
   .dropdown-button-container {
-    background-color: rgb(57, 54, 61);
+    background-color: var(--surface);
     display: flex;
-    border: 1px black solid;
+    border: 1.5px var(--border) solid;
     border-radius: 1.5rem;
     overflow: hidden;
 
@@ -325,14 +328,18 @@
   .dropdown-menu {
     display: none;
     position: absolute;
-    bottom: 3.5rem;
+    bottom: 4rem;
     padding: 0.5rem 1rem;
-    background-color: rgb(57, 54, 61);
-    border-radius: 1rem;
+    background-color: var(--surface);
+    border-radius: 0.5rem;
     select {
-      min-width: 10rem;
+      /* min-width: 10rem; */
       min-height: 2rem;
+      background-color: var(--bg);
+      border-radius: 0.25rem;
+      padding: 0.25rem;
     }
+    z-index: 10;
   }
   .dropdown:focus-within .dropdown-menu {
     display: block;
@@ -344,4 +351,8 @@
       border: 1px solid black;
     }
   }
+
+.dropdown-button-container button:nth-child(2), .screen-share-toggle{
+  color:var(--accent-clr)
+}
 </style>
