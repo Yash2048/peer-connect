@@ -55,11 +55,13 @@
       videoPlaying = false;
     } else {
       const videoConstraints = {
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          aspectRatio: { ideal: 16 / 9 },
-        },
+        video:
+        true, 
+        // {
+          // width: { ideal: 128000 },
+          // height: { ideal: 72000 },
+          // aspectRatio: { ideal: 16 / 9 },
+        // },
       };
       try {
         const videoStream =

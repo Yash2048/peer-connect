@@ -4,7 +4,8 @@
 
   // state
 
-  let videoPlaying = $state(true);
+  let outgoingVideoPlaying = $state(true);
+  let incomingVideoPlaying = $state(false);
   // Video elements for incoming and outgoing streams
   let outgoingVideo: HTMLVideoElement | undefined = $state();
   let incomingVideo: HTMLVideoElement | undefined = $state();
@@ -19,11 +20,12 @@
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let constraints: MediaStreamConstraints = $state({
-    video: {
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      aspectRatio: { ideal: 16 / 9 },
-    },
+    video:true, 
+    // {
+      // width: { ideal: 1280 },
+      // height: { ideal: 720 },
+      // aspectRatio: { ideal: 1 / 2 },
+    // },
     audio: true,
   });
 
@@ -44,7 +46,7 @@
       }
 
       outgoingVideo.srcObject = stream;
-      videoPlaying = true;
+      outgoingVideoPlaying = true;
     } catch (error) {
       console.error(error);
     }
@@ -126,8 +128,10 @@
     console.info("User connected!");
     console.log(e);
     const localStream = e.streams[0];
+    incomingVideoPlaying = true
     localStream.onremovetrack = (e) => {
       if (e.track.kind == "video") {
+        incomingVideoPlaying = false
         if (incomingVideo) incomingVideo.srcObject = null;
       }
     };
@@ -279,10 +283,10 @@
     <span> State: <span>{connectionState}</span></span>
     <span>Username: <span>{userName}</span></span>
   </div>
-  <Calls bind:incomingVideo bind:outgoingVideo {videoPlaying} {connected} />
+  <Calls bind:incomingVideo bind:outgoingVideo {outgoingVideoPlaying} {incomingVideoPlaying} {connected} />
   <MediaControl
     bind:stream
-    bind:videoPlaying
+    bind:videoPlaying={outgoingVideoPlaying}
     bind:constraints
     {audioInputDevices}
     {audioOutputDevices}
