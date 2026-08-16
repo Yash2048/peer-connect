@@ -20,27 +20,64 @@
   let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
-  let constraints: MediaStreamConstraints = $state({
-    video: true,
-    // {
-    // width: { ideal: 1280 },
-    // height: { ideal: 720 },
-    // aspectRatio: { ideal: 1 / 2 },
-    // },
-    audio: true,
-  });
+  let selectedAudioInput = $state("");
+  let selectedVideoInput = $state("");
 
+  let deviceConstraints: Record<string, MediaStreamConstraints> = $state({});
   // gets permissions for IO at mount time
   const getPermissions = async () => {
     console.info("getPermissions fired!");
-
     try {
-      outgoingStream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (!outgoingStream) {
-        console.error("stream does not exist");
-        return;
+      const initialStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true,
+      });
+
+      const audioCapabilities = initialStream
+        .getAudioTracks()[0]
+        .getCapabilities();
+      const videoCapabilities = initialStream
+        .getVideoTracks()[0]
+        .getCapabilities();
+
+      if (audioCapabilities.deviceId) {
+        deviceConstraints[audioCapabilities.deviceId] = {
+          audio: { deviceId: { exact: audioCapabilities.deviceId } },
+        };
       }
-      console.log("Stream is created");
+
+      if (videoCapabilities.deviceId) {
+        const { height, width } = videoCapabilities;
+        deviceConstraints[videoCapabilities.deviceId] = {
+          video: {
+            deviceId: { exact: videoCapabilities.deviceId },
+            width: width?.max,
+            height: height?.max,
+          },
+        };
+      }
+
+      // done reading capabilities, release the probe stream
+      initialStream.getTracks().forEach((track) => track.stop());
+
+      const audioStream = await navigator.mediaDevices.getUserMedia(
+        deviceConstraints[audioCapabilities.deviceId],
+      );
+      const videoStream = await navigator.mediaDevices.getUserMedia(
+        deviceConstraints[videoCapabilities.deviceId],
+      );
+
+      selectedAudioInput = audioCapabilities.deviceId
+        ? audioCapabilities.deviceId
+        : "";
+      selectedVideoInput = videoCapabilities.deviceId
+        ? videoCapabilities.deviceId
+        : "";
+      outgoingStream = new MediaStream([
+        ...audioStream.getAudioTracks(),
+        ...videoStream.getVideoTracks(),
+      ]);
+
       if (!outgoingVideo) {
         console.error("outgoingVideo is undefined.");
         return;
@@ -48,6 +85,7 @@
 
       outgoingVideo.srcObject = outgoingStream;
       outgoingVideoPlaying = true;
+      console.log("Stream is created");
     } catch (error) {
       console.error(error);
     }
@@ -301,13 +339,15 @@
   <MediaControl
     bind:outgoingStream
     bind:outgoingVideoPlaying
-    bind:constraints
     {audioInputDevices}
     {audioOutputDevices}
     {videoInputDevices}
     {outgoingVideo}
     {incomingVideo}
+    {selectedAudioInput}
+    {selectedVideoInput}
     {pc}
+    {deviceConstraints}
   />
 </main>
 

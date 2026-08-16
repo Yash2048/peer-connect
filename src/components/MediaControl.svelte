@@ -9,8 +9,10 @@
     audioInputDevices,
     audioOutputDevices,
     videoInputDevices,
-    constraints = $bindable(),
+    selectedAudioInput,
+    selectedVideoInput,
     pc,
+    deviceConstraints,
   }: {
     outgoingVideoPlaying: boolean;
     outgoingStream: MediaStream | null;
@@ -19,18 +21,18 @@
     audioInputDevices: MediaDeviceInfo[];
     audioOutputDevices: MediaDeviceInfo[];
     videoInputDevices: MediaDeviceInfo[];
-    constraints: MediaStreamConstraints;
     pc: RTCPeerConnection;
+    selectedAudioInput: string;
+    selectedVideoInput: string;
+    deviceConstraints: Record<string, MediaStreamConstraints>;
   } = $props();
 
   let audioPlaying = $state(true);
-  $inspect(constraints).with(console.log);
 
   const toggleVideo = async () => {
     console.info("toggleFeed fired!");
 
     if (outgoingVideoPlaying) {
-      constraints.video = false;
       const senders = pc.getSenders();
       const videoTracks = outgoingStream?.getVideoTracks();
 
@@ -54,17 +56,10 @@
       outgoingVideo.srcObject = outgoingStream;
       outgoingVideoPlaying = false;
     } else {
-      const videoConstraints = {
-        video: true,
-        // {
-        // width: { ideal: 128000 },
-        // height: { ideal: 72000 },
-        // aspectRatio: { ideal: 16 / 9 },
-        // },
-      };
       try {
-        const videoStream =
-          await navigator.mediaDevices.getUserMedia(videoConstraints);
+        const videoStream = await navigator.mediaDevices.getUserMedia(
+          deviceConstraints[selectedVideoInput],
+        );
         const videoTrack = videoStream.getVideoTracks()[0];
 
         console.log(outgoingStream);
@@ -183,8 +178,33 @@
     };
 
     try {
-      const newStream =
-        await navigator.mediaDevices.getUserMedia(videoConstraints);
+      let newStream;
+      if (deviceConstraints[selectedVideoInput])
+        newStream = await navigator.mediaDevices.getUserMedia(
+          deviceConstraints[selectedVideoInput],
+        );
+      else {
+        newStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+        const videoCapabilities = newStream
+          .getVideoTracks()[0]
+          .getCapabilities();
+
+        if (videoCapabilities.deviceId) {
+          const { height, width } = videoCapabilities;
+          deviceConstraints[videoCapabilities.deviceId] = {
+            video: {
+              deviceId: { exact: videoCapabilities.deviceId },
+              width: width?.max,
+              height: height?.max,
+            },
+          };
+        }
+        newStream.getTracks().forEach((track) => track.stop());
+        if (deviceConstraints[selectedVideoInput])
+          newStream = await navigator.mediaDevices.getUserMedia(
+            deviceConstraints[selectedVideoInput],
+          );
+      }
       const newVideoTrack = newStream.getVideoTracks()[0];
 
       if (!outgoingStream) {
@@ -215,7 +235,12 @@
 <section class="options">
   <div class="dropdown audio">
     <div class="dropdown-menu">
-      <select onchange={changeAudioInput} name="" id="">
+      <select
+        bind:value={selectedAudioInput}
+        onchange={changeAudioInput}
+        name=""
+        id=""
+      >
         {#each audioInputDevices as audioInputDevice}
           <option value={audioInputDevice.deviceId}
             >{audioInputDevice.label}</option
@@ -251,7 +276,12 @@
 
   <div class="dropdown video">
     <div class="dropdown-menu">
-      <select onchange={changeVideoInput} name="" id="">
+      <select
+        bind:value={selectedVideoInput}
+        onchange={changeVideoInput}
+        name=""
+        id=""
+      >
         {#each videoInputDevices as videoInputDevice}
           <option value={videoInputDevice.deviceId}
             >{videoInputDevice.label}</option
