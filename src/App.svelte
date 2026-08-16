@@ -14,17 +14,18 @@
   let audioOutputDevices: MediaDeviceInfo[] = $state([]);
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
   // The stream. Client's stream
-  let stream: MediaStream | null = $state(null);
+  let outgoingStream: MediaStream | null = $state(null);
+  let incomingStream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
   let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let constraints: MediaStreamConstraints = $state({
-    video:true, 
+    video: true,
     // {
-      // width: { ideal: 1280 },
-      // height: { ideal: 720 },
-      // aspectRatio: { ideal: 1 / 2 },
+    // width: { ideal: 1280 },
+    // height: { ideal: 720 },
+    // aspectRatio: { ideal: 1 / 2 },
     // },
     audio: true,
   });
@@ -34,8 +35,8 @@
     console.info("getPermissions fired!");
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (!stream) {
+      outgoingStream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (!outgoingStream) {
         console.error("stream does not exist");
         return;
       }
@@ -45,7 +46,7 @@
         return;
       }
 
-      outgoingVideo.srcObject = stream;
+      outgoingVideo.srcObject = outgoingStream;
       outgoingVideoPlaying = true;
     } catch (error) {
       console.error(error);
@@ -101,9 +102,9 @@
 
   const startCall = async () => {
     console.info("startCall fired!");
-    if (stream)
-      stream.getTracks().forEach((track) => {
-        if (stream) pc.addTrack(track, stream);
+    if (outgoingStream)
+      outgoingStream.getTracks().forEach((track) => {
+        if (outgoingStream) pc.addTrack(track, outgoingStream);
       });
     else {
       console.error("stream is undefined");
@@ -123,20 +124,19 @@
       });
     }
   };
-  const handleTrackEvent = (e: RTCTrackEvent) => {
-    connected = true;
-    console.info("User connected!");
-    console.log(e);
-    const localStream = e.streams[0];
-    incomingVideoPlaying = true
-    localStream.onremovetrack = (e) => {
-      if (e.track.kind == "video") {
-        incomingVideoPlaying = false
-        if (incomingVideo) incomingVideo.srcObject = null;
-      }
-    };
+  const handleTrackEvent = (trackEv: RTCTrackEvent) => {
+    console.info("handleTrackEvent fired!");
 
-    if (incomingVideo) incomingVideo.srcObject = e.streams[0];
+    if (!incomingStream) incomingStream = trackEv.streams[0];
+    if (trackEv.track.kind == "video") incomingVideoPlaying = true;
+
+    if (incomingVideo && !incomingVideo.srcObject)
+      incomingVideo.srcObject = incomingStream;
+
+    incomingStream.onremovetrack = (rmTrackEv) => {
+      if (rmTrackEv.track.kind === "video") incomingVideoPlaying = false;
+      if (incomingVideo) incomingVideo.srcObject = incomingStream;
+    };
   };
   const handleNegotiationNeededEvent = async () => {
     try {
@@ -153,6 +153,14 @@
   };
   const handleConnectionStateChangeEvent = (e: Event) => {
     connectionState = pc.connectionState;
+    switch (connectionState) {
+      case "connected":
+        connected = true;
+        break;
+
+      default:
+        break;
+    }
     if (connectionState == "disconnected") {
       connected = false;
       if (incomingVideo) incomingVideo.srcObject = null;
@@ -190,19 +198,19 @@
         await pc.setLocalDescription({ type: "rollback" });
       }
 
-      if (!stream) {
+      if (!outgoingStream) {
         console.error("stream is undefined");
         return;
       }
 
-      stream.getTracks().forEach((track) => {
+      outgoingStream.getTracks().forEach((track) => {
         const alreadySent = pc.getSenders().some((s) => s.track === track);
         if (!alreadySent) {
-          if (!stream) {
+          if (!outgoingStream) {
             console.error("stream is undefined");
             return;
           }
-          pc.addTrack(track, stream);
+          pc.addTrack(track, outgoingStream);
         }
       });
 
@@ -283,10 +291,16 @@
     <span> State: <span>{connectionState}</span></span>
     <span>Username: <span>{userName}</span></span>
   </div>
-  <Calls bind:incomingVideo bind:outgoingVideo {outgoingVideoPlaying} {incomingVideoPlaying} {connected} />
+  <Calls
+    bind:incomingVideo
+    bind:outgoingVideo
+    {outgoingVideoPlaying}
+    {incomingVideoPlaying}
+    {connected}
+  />
   <MediaControl
-    bind:stream
-    bind:videoPlaying={outgoingVideoPlaying}
+    bind:outgoingStream
+    bind:outgoingVideoPlaying
     bind:constraints
     {audioInputDevices}
     {audioOutputDevices}

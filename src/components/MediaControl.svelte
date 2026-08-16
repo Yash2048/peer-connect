@@ -2,8 +2,8 @@
   import "../app.css";
   import Icon from "@iconify/svelte";
   let {
-    videoPlaying = $bindable(),
-    stream = $bindable(),
+    outgoingVideoPlaying = $bindable(),
+    outgoingStream = $bindable(),
     outgoingVideo,
     incomingVideo,
     audioInputDevices,
@@ -12,8 +12,8 @@
     constraints = $bindable(),
     pc,
   }: {
-    videoPlaying: boolean;
-    stream: MediaStream | null;
+    outgoingVideoPlaying: boolean;
+    outgoingStream: MediaStream | null;
     outgoingVideo: HTMLVideoElement | undefined;
     incomingVideo: HTMLVideoElement | undefined;
     audioInputDevices: MediaDeviceInfo[];
@@ -29,10 +29,10 @@
   const toggleVideo = async () => {
     console.info("toggleFeed fired!");
 
-    if (videoPlaying) {
+    if (outgoingVideoPlaying) {
       constraints.video = false;
       const senders = pc.getSenders();
-      const videoTracks = stream?.getVideoTracks();
+      const videoTracks = outgoingStream?.getVideoTracks();
 
       videoTracks?.forEach((track) => {
         senders.forEach((sender) => {
@@ -41,26 +41,25 @@
           }
         });
         track.stop();
-        if (stream) stream.removeTrack(track);
+        if (outgoingStream) outgoingStream.removeTrack(track);
       });
       if (!outgoingVideo) {
         console.error("outgoingVideo is undefined.");
         return;
       }
-      if (!stream) {
+      if (!outgoingStream) {
         console.error("stream is undefined.");
         return;
       }
-      outgoingVideo.srcObject = stream;
-      videoPlaying = false;
+      outgoingVideo.srcObject = outgoingStream;
+      outgoingVideoPlaying = false;
     } else {
       const videoConstraints = {
-        video:
-        true, 
+        video: true,
         // {
-          // width: { ideal: 128000 },
-          // height: { ideal: 72000 },
-          // aspectRatio: { ideal: 16 / 9 },
+        // width: { ideal: 128000 },
+        // height: { ideal: 72000 },
+        // aspectRatio: { ideal: 16 / 9 },
         // },
       };
       try {
@@ -68,20 +67,20 @@
           await navigator.mediaDevices.getUserMedia(videoConstraints);
         const videoTrack = videoStream.getVideoTracks()[0];
 
-        console.log(stream);
+        console.log(outgoingStream);
         if (!outgoingVideo) {
           console.error("outgoingVideo is undefined.");
           return;
         }
 
-        if (!stream) {
-          stream = videoStream;
+        if (!outgoingStream) {
+          outgoingStream = videoStream;
         } else {
-          stream.addTrack(videoTrack);
+          outgoingStream.addTrack(videoTrack);
         }
-        pc.addTrack(videoTrack, stream);
+        pc.addTrack(videoTrack, outgoingStream);
         // outgoingVideo.srcObject = stream;
-        videoPlaying = true;
+        outgoingVideoPlaying = true;
       } catch (error) {
         console.error(error);
       }
@@ -91,10 +90,10 @@
   const toggleAudio = async () => {
     console.info("toggleAudio fired!");
     if (audioPlaying) {
-      const audioTracks = stream?.getAudioTracks();
+      const audioTracks = outgoingStream?.getAudioTracks();
       audioTracks?.forEach((track) => {
         track.stop();
-        stream?.removeTrack(track);
+        outgoingStream?.removeTrack(track);
       });
       // if (outgoingVideo) outgoingVideo.srcObject = stream;
       audioPlaying = false;
@@ -106,17 +105,17 @@
         const audioTrack = audioStream.getAudioTracks()[0];
 
         if (!outgoingVideo) return;
-        if (!stream) {
-          stream = audioStream;
+        if (!outgoingStream) {
+          outgoingStream = audioStream;
         } else {
-          stream.addTrack(audioTrack);
+          outgoingStream.addTrack(audioTrack);
         }
-        pc.addTrack(audioTrack, stream);
+        pc.addTrack(audioTrack, outgoingStream);
 
         audioPlaying = true;
       } catch (error) {
         console.error(error);
-        if (outgoingVideo) outgoingVideo.srcObject = stream;
+        if (outgoingVideo) outgoingVideo.srcObject = outgoingStream;
       }
     }
   };
@@ -138,13 +137,13 @@
         await navigator.mediaDevices.getUserMedia(audioConstraints);
       const audioTrack = audioStream.getAudioTracks()[0];
 
-      if (!stream) {
-        stream = audioStream;
+      if (!outgoingStream) {
+        outgoingStream = audioStream;
       } else {
-        const oldAudioTrack = stream.getAudioTracks()[0];
+        const oldAudioTrack = outgoingStream.getAudioTracks()[0];
         oldAudioTrack.stop();
-        stream.removeTrack(oldAudioTrack);
-        stream.addTrack(audioTrack);
+        outgoingStream.removeTrack(oldAudioTrack);
+        outgoingStream.addTrack(audioTrack);
       }
       const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
       await sender?.replaceTrack(audioTrack);
@@ -173,7 +172,7 @@
   };
   const changeVideoInput = async (e: Event) => {
     console.info("changeVideoInput fired!");
-    if (!videoPlaying) {
+    if (!outgoingVideoPlaying) {
       console.warn("Can't change Video Input while video is off.");
       return;
     }
@@ -188,22 +187,23 @@
         await navigator.mediaDevices.getUserMedia(videoConstraints);
       const newVideoTrack = newStream.getVideoTracks()[0];
 
-      if (!stream) {
-        stream = newStream;
+      if (!outgoingStream) {
+        outgoingStream = newStream;
       } else {
-        const oldVideoTrack = stream.getVideoTracks()[0];
+        const oldVideoTrack = outgoingStream.getVideoTracks()[0];
 
         if (oldVideoTrack) {
           oldVideoTrack.stop();
-          stream.removeTrack(oldVideoTrack);
+          outgoingStream.removeTrack(oldVideoTrack);
         }
-        stream.addTrack(newVideoTrack);
+        outgoingStream.addTrack(newVideoTrack);
       }
 
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
       await sender?.replaceTrack(newVideoTrack);
 
-      if (outgoingVideo && stream) outgoingVideo.srcObject = stream;
+      if (outgoingVideo && outgoingStream)
+        outgoingVideo.srcObject = outgoingStream;
     } catch (error) {
       console.error(error);
     }
@@ -269,7 +269,7 @@
         <Icon height="24px" icon="tabler:dots" />
       </button>
       <button class="video-toggle-button" onclick={toggleVideo}>
-        {#if videoPlaying}
+        {#if outgoingVideoPlaying}
           <Icon height="24px" icon="mdi:camera-outline" />
         {:else}
           <Icon height="24px" icon="mdi:camera-off-outline" />
@@ -292,7 +292,6 @@
 </section>
 
 <style>
-
   section {
     display: flex;
     justify-content: center;
@@ -354,7 +353,8 @@
     }
   }
 
-.dropdown-button-container button:nth-child(2), .screen-share-toggle{
-  color:var(--accent-clr)
-}
+  .dropdown-button-container button:nth-child(2),
+  .screen-share-toggle {
+    color: var(--accent-clr);
+  }
 </style>

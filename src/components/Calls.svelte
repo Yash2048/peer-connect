@@ -83,7 +83,7 @@
     min-height: 0;
     container-type: size;
     position: relative;
-    border: 1px solid saddlebrown;
+    /* border: 1px solid saddlebrown; */
   }
 
   .incoming-video-container {
