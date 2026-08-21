@@ -14,58 +14,26 @@
     incomingVideoPlaying: boolean;
     connected: boolean;
   } = $props();
-
-  let incomingRatio = $state("16 / 9");
-  let outgoingRatio = $state("16 / 9");
-
-  let isIncomingHorizontal = $state(true);
-  let isOutgoingHorizontal = $state(true);
-
-  const handleIncomingResize = () => {
-    const { videoHeight, videoWidth } = incomingVideo;
-    if (videoHeight && videoWidth)
-      isIncomingHorizontal = videoWidth / videoHeight > 1;
-    incomingRatio = `${videoWidth} / ${videoHeight}`;
-  };
-  const handleOutgoingResize = () => {
-    const { videoHeight, videoWidth } = outgoingVideo;
-    if (videoHeight && videoWidth)
-      isOutgoingHorizontal = videoWidth / videoHeight > 1;
-    outgoingRatio = `${videoWidth} / ${videoHeight}`;
-  };
 </script>
 
 <section class="feed">
-  <div
-    style="--outgoing-ratio: {outgoingRatio}"
-    class="{connected ? 'minimize' : ''} {isOutgoingHorizontal
-      ? 'horizontal'
-      : 'vertical'} outgoing-video-container"
-  >
+  <div class="{connected ? 'minimize' : ''} outgoing-video-container">
     <video
       class="{outgoingVideoPlaying ? 'play' : 'play-off'} outgoing"
       id="outgoing"
       bind:this={outgoingVideo}
-      onresize={handleIncomingResize}
-      onloadeddata={handleOutgoingResize}
       autoplay
       muted
       playsinline
     ></video>
   </div>
-  <div
-    style="--incoming-ratio: {incomingRatio}"
-    class="incoming-video-container {connected
-      ? ''
-      : 'hidden'} {isIncomingHorizontal
-      ? 'horizontal'
-      : 'vertical'}{isIncomingHorizontal ? 'horizontal' : 'vertical'}"
-  >
+  <div class="incoming-video-container">
     <video
-      class="{incomingVideoPlaying ? 'play' : 'play-off'} incoming"
+      class="{incomingVideoPlaying ? 'play' : 'play-off'} {connected
+        ? ''
+        : 'hidden'} incoming"
       id="incoming"
       bind:this={incomingVideo}
-      onresize={handleOutgoingResize}
       autoplay
       playsinline
     ></video>
@@ -92,26 +60,16 @@
 
   .outgoing-video-container {
     background-color: var(--muted);
+    transform: scaleX(-1);
   }
 
   .minimize {
     position: absolute;
-    bottom: 1rem;
-    right: 0;
+    bottom: 0.1rem;
+    right: 0.1rem;
     width: 12rem;
-    border-radius: 0.5rem;
-  }
-
-  .incoming-video-container:has(.play) {
-    min-width: 50%;
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-  }
-
-  .incoming-video-container:has(.play-off) {
-    /* width: 90%; */
+    /* outline: 1px gainsboro solid; */
+    /* background-color: black; */
   }
 
   .outgoing-video-container:not(.minimize):has(.play) {
@@ -124,6 +82,16 @@
     min-width: 100%;
   }
 
+  .incoming-video-container:not(.minimize):has(.play) {
+    min-width: 50%;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .incoming-video-container:not(.minimize):has(.play-off) {
+    min-width: 100%;
+  }
+
   .incoming-video-container,
   .outgoing-video-container {
     border-radius: 0.6rem;
@@ -132,14 +100,6 @@
     max-width: 100%;
     max-height: 100%;
   }
-  .vertical:not(.minimize) {
-    height: 100%;
-  }
-  .horizontal:not(.minimize) {
-    height: 100%;
-    /* border:1rem red solid */
-  }
-
   .hidden {
     display: none;
   }
