@@ -90,7 +90,6 @@
         track.stop();
         outgoingStream?.removeTrack(track);
       });
-      // if (outgoingVideo) outgoingVideo.srcObject = stream;
       audioPlaying = false;
     } else {
       try {

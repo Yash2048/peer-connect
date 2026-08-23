@@ -2,11 +2,10 @@
   import "./app.css";
   import { onMount } from "svelte";
 
-  // state
-
+  // State
   let outgoingVideoPlaying = $state(true);
   let incomingVideoPlaying = $state(false);
-  // Video elements for incoming and outgoing streams
+  // video elements for incoming and outgoing streams
   let outgoingVideo: HTMLVideoElement | undefined = $state();
   let incomingVideo: HTMLVideoElement | undefined = $state();
   // to store the devices from the stream
@@ -18,6 +17,8 @@
   let incomingStream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
   let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
+  let ICEGatheringState: RTCIceGathererState | "NA" = $state("NA");
+  let RTCSignalingState: RTCSignalingState | "NA" = $state("NA");
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let selectedAudioInput = $state("");
@@ -195,19 +196,26 @@
       case "connected":
         connected = true;
         break;
-
+      case "disconnected":
+        connected = false;
+        if (incomingVideo) incomingVideo.srcObject = null;
+        break;
+      case "failed":
+        // pc.setConfiguration(rtcConfig);
+        pc.restartIce();
+        break;
+      case "closed":
+        break;
+      case "connecting":
+        break;
+      case "new":
+        break;
       default:
         break;
     }
-    if (connectionState == "disconnected") {
-      connected = false;
-      if (incomingVideo) incomingVideo.srcObject = null;
-    }
   };
   const handleRemoveTrackEvent = (e: Event) => {};
-
   const handleICEConnectionStateChangeEvent = (e: Event) => {};
-
   const handleICEGatheringStateChangeEvent = (e: Event) => {};
   const handleSignalingStateChangeEvent = (e: Event) => {};
 
@@ -305,6 +313,7 @@
           placeholder="Meeting"
           minlength="1"
           required
+          autocomplete="off"
         />
       </label>
       <label>
@@ -316,6 +325,7 @@
           placeholder="My room"
           minlength="1"
           required
+          autocomplete="off"
         />
       </label>
       <button>Start Call</button>
