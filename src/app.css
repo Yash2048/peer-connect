@@ -67,3 +67,7 @@
       opacity: 0.9;
     }
   }
+
+  video{
+    display: block;
+  }

@@ -21,7 +21,11 @@
 </script>
 
 <section class="feed">
-  <div class="{connected ? 'minimize' : ''} outgoing-video-container">
+  <div
+    class="{connected
+      ? 'minimize'
+      : ''} outgoing-video-container video-container"
+  >
     <video
       class="{outgoingVideoPlaying ? 'play' : 'play-off'} outgoing"
       id="outgoing"
@@ -29,39 +33,64 @@
       autoplay
       muted
       playsinline
+      tabindex="-1"
     ></video>
   </div>
-  <div class="incoming-video-container">
+  <div
+    class="incoming-video-container video-container {connected ? '' : 'hidden'}"
+  >
     <video
-      class="{incomingVideoPlaying ? 'play' : 'play-off'} {connected
-        ? ''
-        : 'hidden'} incoming"
+      class="{incomingVideoPlaying ? 'play' : 'play-off'}  incoming"
       id="incoming"
       bind:this={iv}
       autoplay
       playsinline
+      tabindex="-1"
     ></video>
   </div>
 </section>
 
 <style>
   .feed {
+    flex-direction: column;
     flex-grow: 1;
     width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
     min-height: 0;
-    container-type: size;
+    min-width: 0;
     position: relative;
     /* border: 1px solid saddlebrown; */
+    &:has(video.play) {
+      align-items: center;
+    }
+  }
+
+  .video-container {
+    border-radius: 0.75rem;
+    overflow: clip;
+    min-height: 0;
+    min-width: 0;
+    max-width: 100%;
+    max-height: 100%;
+    &:has(.play-off) {
+      flex: 1;
+    }
+    &:has(.play) {
+      flex: 0 0 auto;
+      width: fit-content;
+      height: fit-content;
+    }
+  }
+  video {
+    max-width: 100%;
+    max-height: 100%;
   }
 
   .incoming-video-container {
     background-color: antiquewhite;
   }
-
   .outgoing-video-container {
     background-color: var(--muted);
     transform: scaleX(-1);
@@ -71,46 +100,11 @@
     position: absolute;
     bottom: 0.1rem;
     right: 0.1rem;
-    width: 12rem;
-    /* outline: 1px gainsboro solid; */
-    /* background-color: black; */
-  }
-
-  .outgoing-video-container:not(.minimize):has(.play) {
-    min-width: 50%;
-    max-width: 100%;
-    max-height: 100%;
-  }
-
-  .outgoing-video-container:not(.minimize):has(.play-off) {
-    min-width: 100%;
-  }
-
-  .incoming-video-container:not(.minimize):has(.play) {
-    min-width: 50%;
-    max-width: 100%;
-    max-height: 100%;
-  }
-
-  .incoming-video-container:not(.minimize):has(.play-off) {
-    min-width: 100%;
-  }
-
-  .incoming-video-container,
-  .outgoing-video-container {
-    border-radius: 0.6rem;
-    display: flex;
-    overflow: hidden;
-    max-width: 100%;
-    max-height: 100%;
+    video {
+      width: min(16rem,40vw);
+    }
   }
   .hidden {
-    display: none;
-  }
-
-  video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    visibility: collapse;
   }
 </style>
