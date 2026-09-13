@@ -1,14 +1,24 @@
 <script lang="ts">
-    let {
-        joinRoom,
-        roomName = $bindable(),
-        userName = $bindable(),
-        dialogRef = $bindable(),
-    } = $props();
+    import { onMount } from "svelte";
+
+    let { joinRoom, onFormSubmit, onDialogRef } = $props();
+    let roomName = $state("");
+    let userName = $state("");
+    let dialogRef: HTMLDialogElement | undefined = $state();
+
+    onMount(() => {
+        if(dialogRef) onDialogRef(dialogRef);
+    });
 </script>
 
 <dialog bind:this={dialogRef}>
-    <form method="dialog" onsubmit={joinRoom}>
+    <form
+        method="dialog"
+        onsubmit={() => {
+            onFormSubmit(roomName, userName);
+            joinRoom();
+        }}
+    >
         <fieldset>
             <label>
                 <span>Room Name</span>
@@ -95,8 +105,6 @@
         font-weight: 600;
         cursor: pointer;
     }
-
-
 
     dialog button:active {
         transform: scale(0.98);

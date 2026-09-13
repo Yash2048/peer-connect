@@ -108,6 +108,19 @@
     videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
 
+  // Callback Props
+  const onFormSubmit = (roomname:string, username:string) => {
+    roomName = roomname;
+    userName = username;
+  };
+  const onDialogRef = (dr:HTMLDialogElement) => {
+    dialogRef = dr;
+  };
+  const onVideoRef = (iv:HTMLVideoElement, ov:HTMLVideoElement) => {
+    incomingVideo = iv;
+    outgoingVideo = ov;
+  };
+
   // WebRTC code
   let roomName = $state("");
   let userName = $state("");
@@ -293,16 +306,16 @@
   });
 
   // Handle incoming signals
-  let dialogRef: HTMLDialogElement =  $state();
+  let dialogRef: HTMLDialogElement|undefined = $state();
 
   onMount(async () => {
-    dialogRef.showModal();
+    if(dialogRef) dialogRef.showModal();
     await getPermissions();
     await getDevices();
   });
 </script>
 
-<Dialog {joinRoom} bind:roomName bind:userName bind:dialogRef />
+<Dialog {joinRoom} {onFormSubmit} {onDialogRef} />
 <main>
   <div class="user-info">
     <span>Room No: <span>{roomName}</span></span>
@@ -310,8 +323,7 @@
     <span>Username: <span>{userName}</span></span>
   </div>
   <Calls
-    bind:incomingVideo
-    bind:outgoingVideo
+    {onVideoRef}
     {outgoingVideoPlaying}
     {incomingVideoPlaying}
     {connected}

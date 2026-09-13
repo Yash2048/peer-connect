@@ -1,18 +1,23 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import "../app.css";
   let {
-    incomingVideo = $bindable(),
-    outgoingVideo = $bindable(),
     outgoingVideoPlaying,
     incomingVideoPlaying,
     connected,
+    onVideoRef,
   }: {
-    incomingVideo: HTMLVideoElement;
-    outgoingVideo: HTMLVideoElement;
     outgoingVideoPlaying: boolean;
     incomingVideoPlaying: boolean;
     connected: boolean;
+    onVideoRef: (iv: HTMLVideoElement, ov: HTMLVideoElement) => void;
   } = $props();
+  let iv: HTMLVideoElement | undefined = $state();
+
+  let ov: HTMLVideoElement | undefined = $state();
+  onMount(() => {
+    if (iv && ov) onVideoRef(iv, ov);
+  });
 </script>
 
 <section class="feed">
@@ -20,7 +25,7 @@
     <video
       class="{outgoingVideoPlaying ? 'play' : 'play-off'} outgoing"
       id="outgoing"
-      bind:this={outgoingVideo}
+      bind:this={ov}
       autoplay
       muted
       playsinline
@@ -32,7 +37,7 @@
         ? ''
         : 'hidden'} incoming"
       id="incoming"
-      bind:this={incomingVideo}
+      bind:this={iv}
       autoplay
       playsinline
     ></video>
