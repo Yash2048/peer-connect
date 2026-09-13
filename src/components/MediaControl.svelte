@@ -233,7 +233,7 @@
 
 <section class="options">
   <div class="dropdown audio">
-    <div class="dropdown-menu">
+    <div popover id="dropdown-menu-audio" class="dropdown-menu">
       <select
         bind:value={selectedAudioInput}
         onchange={changeAudioInput}
@@ -256,6 +256,7 @@
     </div>
     <span class="dropdown-button-container">
       <button
+        popovertarget="dropdown-menu-audio"
         class="dropdown-toggle"
         onclick={() => {
           audioDropDownOpen = !audioDropDownOpen;
@@ -274,7 +275,7 @@
   </div>
 
   <div class="dropdown video">
-    <div class="dropdown-menu">
+    <div popover id="dropdown-menu-video" class="dropdown-menu">
       <select
         bind:value={selectedVideoInput}
         onchange={changeVideoInput}
@@ -290,6 +291,7 @@
     </div>
     <span class="dropdown-button-container">
       <button
+        popovertarget="dropdown-menu-video"
         class="dropdown-toggle"
         onclick={() => {
           videoDropDownOpen = !videoDropDownOpen;
@@ -335,6 +337,42 @@
     justify-content: center;
     gap: 1rem;
   }
+  .dropdown.audio {
+    anchor-name: --anchor-audio;
+
+    .dropdown-menu {
+      position-anchor: --anchor-audio;
+    }
+  }
+  .dropdown.video {
+    anchor-name: --anchor-video;
+
+    .dropdown-menu {
+      position-anchor: --anchor-video;
+    }
+  }
+  .dropdown-menu {
+    width: fit-content;
+    position: absolute;
+    position-area: top span-right;
+    padding: 0.5rem 1rem;
+    background-color: var(--surface);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    margin: 1rem 0;
+    gap: 1rem;
+    select {
+      /* min-width: 10rem; */
+      min-height: 2rem;
+      background-color: var(--bg);
+      border-radius: 0.25rem;
+      padding: 0.25rem;
+    }
+    z-index: 10;
+    &:popover-open {
+      display: flex;
+    }
+  }
 
   button {
     height: 3rem;
@@ -351,25 +389,6 @@
     & button:first-child {
       background-color: transparent;
     }
-  }
-  .dropdown-menu {
-    display: none;
-    position: absolute;
-    bottom: 4rem;
-    padding: 0.5rem 1rem;
-    background-color: var(--surface);
-    border-radius: 0.5rem;
-    select {
-      /* min-width: 10rem; */
-      min-height: 2rem;
-      background-color: var(--bg);
-      border-radius: 0.25rem;
-      padding: 0.25rem;
-    }
-    z-index: 10;
-  }
-  .dropdown:focus-within .dropdown-menu {
-    display: block;
   }
 
   .end-call {

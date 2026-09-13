@@ -12,9 +12,7 @@
   :root {
     --bg: #f9fafb;
     --text: #374151;
-    --text-h: #111827;
     --accent: #7c3aed;
-    --accent-border: rgba(147, 51, 234, 0.35);
     --surface: #ffffff;
     --border: #e5e7eb;
     --muted: #7688ad;
@@ -34,8 +32,6 @@
     @media (prefers-color-scheme: dark) {
       --bg: #1e1e2e;
       --text: #e2e2f0;
-      --text-h: #f3f4f6;
-      --accent-border: rgba(192, 132, 252, 0.5);
       --surface: #2a2a3c;
       --border: #3a3a4d;
       --muted: #6b7280;
