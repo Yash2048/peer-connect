@@ -20,8 +20,6 @@
     --muted: #7688ad;
     --accent-clr: #ffffff;
     --accent-hover: #6d28d9;
-    --shadow:
-      rgba(0, 0, 0, 0.06) 0 10px 15px -3px, rgba(0, 0, 0, 0.04) 0 4px 6px -2px;
 
     color: var(--text);
     letter-spacing: 0.18px;
@@ -32,10 +30,8 @@
     @media (max-width: 1024px) {
       font-size: 16px;
     }
-  }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
+    @media (prefers-color-scheme: dark) {
       --bg: #1e1e2e;
       --text: #e2e2f0;
       --text-h: #f3f4f6;
@@ -46,7 +42,32 @@
       --accent: #89b4fa;
       --accent-clr: #1e1e2e;
       --accent-hover: #a6c8ff;
-      --shadow:
-        rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    }
+  }
+
+  button {
+    --btn-bg: var(--accent);
+    background-color: var(--btn-bg);
+    color: var(--accent-clr);
+    border: none;
+    transition:
+      background 0.15s ease,
+      transform 0.1s ease;
+
+    &:hover {
+      background-color: hsl(from var(--btn-bg) h s clamp(0, calc(l + 10), 80));
+    }
+  }
+
+  input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+
+    &::placeholder {
+      color: var(--muted);
+      opacity: 0.9;
     }
   }

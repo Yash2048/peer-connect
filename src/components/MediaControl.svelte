@@ -327,7 +327,6 @@
   }
 
   .options {
-    /* position: fixed; */
     bottom: 1rem;
     left: 0;
     right: 0;
@@ -338,11 +337,9 @@
   }
 
   button {
-    border: none;
     height: 3rem;
     width: 3rem;
     border-radius: 50%;
-    background-color: var(--accent);
   }
   .dropdown-button-container {
     background-color: var(--surface);
@@ -376,14 +373,10 @@
   }
 
   .end-call {
-    background-color: red;
-    &:hover {
-      border: 1px solid black;
-    }
+    --btn-bg: red;
   }
 
-  .dropdown-button-container button:nth-child(2),
-  .screen-share-toggle {
-    color: var(--accent-clr);
+  .dropdown-button-container button:first-child {
+    color: white;
   }
 </style>
