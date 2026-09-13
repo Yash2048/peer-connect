@@ -38,7 +38,7 @@
                     type="text"
                     name="user-name"
                     bind:value={userName}
-                    placeholder="My room"
+                    placeholder="John Doe"
                     minlength="1"
                     required
                     autocomplete="off"
