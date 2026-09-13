@@ -105,6 +105,6 @@
     }
   }
   .hidden {
-    visibility: collapse;
+    display: none;
   }
 </style>
