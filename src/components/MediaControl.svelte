@@ -229,6 +229,15 @@
   };
   let audioDropDownOpen = $state(false);
   let videoDropDownOpen = $state(false);
+
+  import IconMdiCameraOutline from "~icons/mdi/camera-outline";
+  import IconMdiCameraOffOutline from "~icons/mdi/camera-off-outline";
+  import IconMSMicOutline from "~icons/material-symbols/mic-outline";
+  import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
+  import IconMSScreenShare from "~icons/material-symbols/screen-share";
+  import IconMSScreenShareOutline from "~icons/material-symbols/screen-share-outline";
+  import IconMSCallEndOutline from "~icons/material-symbols/call-end-outline";
+  import IconTablerDots from "~icons/tabler/dots";
 </script>
 
 <section class="options">
@@ -263,13 +272,18 @@
           audioDropDownOpen = !audioDropDownOpen;
         }}
       >
-        <Icon height="24px" icon="tabler:dots" />
+        <!-- <Icon height="24px" icon="tabler:dots" /> -->
+        <IconTablerDots height="24px" width="24px" />
       </button>
-      <button aria-label="audio-toggle" class="audio-toggle-button" onclick={toggleAudio}>
+      <button
+        aria-label="audio-toggle"
+        class="audio-toggle-button"
+        onclick={toggleAudio}
+      >
         {#if audioPlaying}
-          <Icon height="24px" icon="material-symbols:mic-outline" />
+          <IconMSMicOutline height="24px" width="24px" />
         {:else}
-          <Icon height="24px" icon="material-symbols:mic-off-outline" />
+          <IconMSMicOffOutline height="24px" width="24px" />
         {/if}
       </button>
     </span>
@@ -292,20 +306,24 @@
     </div>
     <span class="dropdown-button-container">
       <button
-      aria-label="video-dropdown-toggle"
+        aria-label="video-dropdown-toggle"
         popovertarget="dropdown-menu-video"
         class="dropdown-toggle"
         onclick={() => {
           videoDropDownOpen = !videoDropDownOpen;
         }}
       >
-        <Icon height="24px" icon="tabler:dots" />
+        <IconTablerDots height="24px" width="24px" />
       </button>
-      <button aria-label="video-toggle" class="video-toggle-button" onclick={toggleVideo}>
+      <button
+        aria-label="video-toggle"
+        class="video-toggle-button"
+        onclick={toggleVideo}
+      >
         {#if outgoingVideoPlaying}
-          <Icon height="24px" icon="mdi:camera-outline" />
+          <IconMdiCameraOutline width="24" height="24" />
         {:else}
-          <Icon height="24px" icon="mdi:camera-off-outline" />
+          <IconMdiCameraOffOutline width="24" height="24" />
         {/if}
       </button>
     </span>
@@ -313,14 +331,14 @@
 
   <button aria-label="screen-share-toggle" class="screen-share-toggle">
     {#if false}
-      <Icon height="24px" icon="material-symbols:screen-share" />
-    {:else}
-      <Icon height="24px" icon="material-symbols:screen-share-outline" />
-    {/if}
-  </button>
-
-  <button aria-label="call-end-toggle" class="end-call">
-    <Icon height="24px" icon="material-symbols:call-end-outline" />
+      <IconMSScreenShare height="24px" width="24px" />
+      {:else}
+      <IconMSScreenShareOutline height="24px" width="24px" />
+      {/if}
+    </button>
+    
+    <button aria-label="call-end-toggle" class="end-call">
+      <IconMSCallEndOutline height="24px" width="24px" />
   </button>
 </section>
 
