@@ -403,19 +403,19 @@
     background-color: var(--surface);
     display: flex;
     border: 1.5px var(--border) solid;
-    border-radius: 1.5rem;
+    border-radius: 1.6rem;
     overflow: hidden;
 
     & button:first-child {
       background-color: transparent;
     }
   }
-
+  
   .end-call {
     --btn-bg: red;
   }
 
   .dropdown-button-container button:first-child {
-    color: white;
+    --btn-clr: var(--btn-bg);
   }
 </style>

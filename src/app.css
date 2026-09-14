@@ -10,14 +10,14 @@
   }
 
   :root {
-    --bg: #f9fafb;
-    --text: #374151;
-    --accent: #7c3aed;
-    --surface: #ffffff;
-    --border: #e5e7eb;
-    --muted: #7688ad;
-    --accent-clr: #ffffff;
-    --accent-hover: #6d28d9;
+    --bg: hsl(210, 20%, 98%);
+    --text: hsl(217, 19%, 27%);
+    --surface: hsl(0, 0%, 100%);
+    --border: hsl(220, 13%, 71%);
+    --muted: hsl(220, 25%, 57%);
+    --accent: hsl(262, 83%, 58%);
+    --accent-clr: hsl(0, 0%, 100%);
+    --accent-hover: hsl(263, 70%, 50%);
 
     color: var(--text);
     letter-spacing: 0.18px;
@@ -30,24 +30,31 @@
     }
 
     @media (prefers-color-scheme: dark) {
-      --bg: #1e1e2e;
-      --text: #e2e2f0;
-      --surface: #2a2a3c;
-      --border: #3a3a4d;
-      --muted: #6b7280;
-      --accent: #89b4fa;
-      --accent-clr: #1e1e2e;
-      --accent-hover: #a6c8ff;
+      --bg: hsl(240, 21%, 15%);
+      --text: hsl(240, 32%, 91%);
+      --surface: hsl(240, 18%, 20%);
+      --border: hsl(240, 14%, 26%);
+      --muted: hsl(220, 9%, 46%);
+      --accent: hsl(217, 92%, 76%);
+      --accent-clr: hsl(240, 21%, 15%);
+      --accent-hover: hsl(217, 100%, 83%);
     }
   }
 
+body,button,input,form,dialog{
+  transition: all 0.25s ease;
+}
+
   body{
+    background-color: var(--bg);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif
   }
   button {
     --btn-bg: var(--accent);
+    --btn-clr:var(--accent-clr);
+    font:inherit;
     background-color: var(--btn-bg);
-    color: var(--accent-clr);
+    color: var(--btn-clr);
     border: none;
     transition:
       background 0.15s ease,
@@ -59,12 +66,9 @@
   }
 
   input {
+    font:inherit;
     background: var(--surface);
     border: 1px solid var(--border);
-    transition:
-      border-color 0.15s ease,
-      box-shadow 0.15s ease;
-
     &::placeholder {
       color: var(--muted);
       opacity: 0.9;

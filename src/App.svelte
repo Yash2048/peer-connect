@@ -345,7 +345,6 @@
 
 <style>
   main {
-    background-color: var(--bg);
     margin: auto;
     display: flex;
     flex-direction: column;
