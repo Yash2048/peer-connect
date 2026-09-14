@@ -256,6 +256,7 @@
     </div>
     <span class="dropdown-button-container">
       <button
+        aria-label="audio-dropdown-toggle"
         popovertarget="dropdown-menu-audio"
         class="dropdown-toggle"
         onclick={() => {
@@ -264,7 +265,7 @@
       >
         <Icon height="24px" icon="tabler:dots" />
       </button>
-      <button class="audio-toggle-button" onclick={toggleAudio}>
+      <button aria-label="audio-toggle" class="audio-toggle-button" onclick={toggleAudio}>
         {#if audioPlaying}
           <Icon height="24px" icon="material-symbols:mic-outline" />
         {:else}
@@ -291,6 +292,7 @@
     </div>
     <span class="dropdown-button-container">
       <button
+      aria-label="video-dropdown-toggle"
         popovertarget="dropdown-menu-video"
         class="dropdown-toggle"
         onclick={() => {
@@ -299,7 +301,7 @@
       >
         <Icon height="24px" icon="tabler:dots" />
       </button>
-      <button class="video-toggle-button" onclick={toggleVideo}>
+      <button aria-label="video-toggle" class="video-toggle-button" onclick={toggleVideo}>
         {#if outgoingVideoPlaying}
           <Icon height="24px" icon="mdi:camera-outline" />
         {:else}
@@ -309,7 +311,7 @@
     </span>
   </div>
 
-  <button class="screen-share-toggle">
+  <button aria-label="screen-share-toggle" class="screen-share-toggle">
     {#if false}
       <Icon height="24px" icon="material-symbols:screen-share" />
     {:else}
@@ -317,7 +319,7 @@
     {/if}
   </button>
 
-  <button class="end-call">
+  <button aria-label="call-end-toggle" class="end-call">
     <Icon height="24px" icon="material-symbols:call-end-outline" />
   </button>
 </section>
