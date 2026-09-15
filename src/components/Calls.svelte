@@ -19,6 +19,12 @@
   import IconMSMicOutline from "~icons/material-symbols/mic-outline";
   import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
 
+  const initials = $derived(
+    peerName.split(" ").length > 1
+      ? peerName.split(" ")[0][0] + peerName.split(" ")[1][0]
+      : peerName[0],
+  );
+
   onMount(() => {
     if (iv && ov) onVideoRef(iv, ov);
   });
@@ -40,7 +46,7 @@
         </div>
         <span>You</span>
       </div>
-      <div class="pfp"></div>
+      <!-- <div class="pfp"></div> -->
     </div>
     <video
       class="outgoing"
@@ -69,7 +75,9 @@
         </div>
         <span>{peerName}</span>
       </div>
-      <div class="pfp"></div>
+      {#if !incomingVideoPlaying}
+        <div class="pfp">{initials}</div>
+      {/if}
     </div>
     <video
       class="incoming"
@@ -118,8 +126,8 @@
       height: fit-content;
     }
   }
-  
-  .incoming-video-container{
+
+  .incoming-video-container {
     /* outline:  1rem blue solid; */
     width: 100%;
   }
@@ -197,5 +205,23 @@
       transition: all 5s ease;
       padding-right: 1rem;
     }
+  }
+
+  .pfp {
+    --pfp-bg: rebeccapurple;
+    --pfp-clr: antiquewhite;
+    width: 7rem;
+    height: 7rem;
+    border-radius: 50%;
+    background-color: var(--pfp-bg);
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    color: var(--pfp-clr);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: xxx-large;
+    text-transform: uppercase;
   }
 </style>
