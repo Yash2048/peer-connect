@@ -5,16 +5,20 @@
     outgoingVideoPlaying,
     incomingVideoPlaying,
     connected,
+    peerName,
     onVideoRef,
   }: {
     outgoingVideoPlaying: boolean;
     incomingVideoPlaying: boolean;
     connected: boolean;
+    peerName: string;
     onVideoRef: (iv: HTMLVideoElement, ov: HTMLVideoElement) => void;
   } = $props();
   let iv: HTMLVideoElement | undefined = $state();
-
   let ov: HTMLVideoElement | undefined = $state();
+  import IconMSMicOutline from "~icons/material-symbols/mic-outline";
+  import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
+
   onMount(() => {
     if (iv && ov) onVideoRef(iv, ov);
   });
@@ -22,12 +26,26 @@
 
 <section class="feed">
   <div
-    class="{connected
-      ? 'minimize'
-      : ''} outgoing-video-container video-container"
+    class="outgoing-video-container video-container"
+    class:minimize={connected}
   >
+    <div class="overlay">
+      <div class="name">
+        <div class="icon">
+          {#if false}
+            <IconMSMicOutline height="24px" width="24px" />
+          {:else}
+            <IconMSMicOffOutline height="24px" width="24px" />
+          {/if}
+        </div>
+        <span>You</span>
+      </div>
+      <div class="pfp"></div>
+    </div>
     <video
-      class="{outgoingVideoPlaying ? 'play' : 'play-off'} outgoing"
+      class="outgoing"
+      class:play={outgoingVideoPlaying}
+      class:playOff={!outgoingVideoPlaying}
       id="outgoing"
       bind:this={ov}
       autoplay
@@ -37,10 +55,26 @@
     ></video>
   </div>
   <div
-    class="incoming-video-container video-container {connected ? '' : 'hidden'}"
+    class:hidden={!connected}
+    class="incoming-video-container video-container"
   >
+    <div class="overlay">
+      <div class="name">
+        <div class="icon">
+          {#if false}
+            <IconMSMicOutline height="24px" width="24px" />
+          {:else}
+            <IconMSMicOffOutline height="24px" width="24px" />
+          {/if}
+        </div>
+        <span>{peerName}</span>
+      </div>
+      <div class="pfp"></div>
+    </div>
     <video
-      class="{incomingVideoPlaying ? 'play' : 'play-off'}  incoming"
+      class="incoming"
+      class:play={incomingVideoPlaying}
+      class:playOff={!incomingVideoPlaying}
       id="incoming"
       bind:this={iv}
       autoplay
@@ -68,13 +102,14 @@
   }
 
   .video-container {
+    position: relative;
     border-radius: 0.75rem;
     overflow: clip;
     min-height: 0;
     min-width: 0;
     max-width: 100%;
     max-height: 100%;
-    &:has(.play-off) {
+    &:has(.playOff) {
       flex: 1;
     }
     &:has(.play) {
@@ -82,6 +117,11 @@
       width: fit-content;
       height: fit-content;
     }
+  }
+  
+  .incoming-video-container{
+    /* outline:  1rem blue solid; */
+    width: 100%;
   }
   video {
     max-width: 100%;
@@ -93,18 +133,69 @@
   }
   .outgoing-video-container {
     background-color: var(--muted);
-    transform: scaleX(-1);
+    video {
+      z-index: 0;
+      scale: -1 1;
+      border-radius: 0.75rem;
+    }
   }
 
   .minimize {
+    z-index: 1;
     position: absolute;
     bottom: 0.1rem;
     right: 0.1rem;
     video {
-      width: min(16rem,40vw);
+      width: min(16rem, 40vw);
     }
   }
   .hidden {
     display: none;
+  }
+
+  .overlay {
+    z-index: 1;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    &:hover {
+      .name {
+        max-width: 100%;
+      }
+    }
+
+    & > * {
+      position: absolute;
+    }
+  }
+  .name {
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background-color: var(--surface);
+    border: 1px s + olid var(--border);
+    border-radius: 1.6rem;
+    position: absolute;
+    bottom: min(1rem, 5%);
+    left: min(1rem, 5%);
+    transition: all 1s ease;
+    max-width: 2.5rem;
+    overflow: hidden;
+
+    .icon {
+      color: var(--accent);
+      display: flex;
+      padding: 0.5rem;
+      background-color: var(--bg);
+      border-radius: 50%;
+    }
+    span {
+      text-transform: capitalize;
+      text-wrap: nowrap;
+      transition: all 5s ease;
+      padding-right: 1rem;
+    }
   }
 </style>

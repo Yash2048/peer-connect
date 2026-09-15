@@ -109,14 +109,14 @@
   };
 
   // Callback Props
-  const onFormSubmit = (roomname:string, username:string) => {
+  const onFormSubmit = (roomname: string, username: string) => {
     roomName = roomname;
     userName = username;
   };
-  const onDialogRef = (dr:HTMLDialogElement) => {
+  const onDialogRef = (dr: HTMLDialogElement) => {
     dialogRef = dr;
   };
-  const onVideoRef = (iv:HTMLVideoElement, ov:HTMLVideoElement) => {
+  const onVideoRef = (iv: HTMLVideoElement, ov: HTMLVideoElement) => {
     incomingVideo = iv;
     outgoingVideo = ov;
   };
@@ -124,6 +124,7 @@
   // WebRTC code
   let roomName = $state("");
   let userName = $state("");
+  let peerName = $state("");
   import { io } from "socket.io-client";
   let makingOffer = false;
   let isInitiator = false;
@@ -150,7 +151,7 @@
 
   // functions
   const joinRoom = () => {
-    if (roomName) socket.emit("join", roomName);
+    socket.emit("join", roomName, userName);
   };
 
   const startCall = async () => {
@@ -165,7 +166,11 @@
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    socket.emit("signal", { room: roomName, data: { type: "offer", offer } });
+    socket.emit("signal", {
+      room: roomName,
+      username: userName,
+      data: { type: "offer", offer },
+    });
   };
 
   // handlers
@@ -173,6 +178,7 @@
     if (e.candidate) {
       socket.emit("signal", {
         room: roomName,
+        username: userName,
         data: { type: "ice-candidate", candidate: e.candidate.toJSON() },
       });
     }
@@ -197,7 +203,11 @@
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       const message: SignalMessage = { type: "offer", offer };
-      socket.emit("signal", { room: roomName, data: message });
+      socket.emit("signal", {
+        room: roomName,
+        username: userName,
+        data: message,
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -247,7 +257,7 @@
       startCall();
     }
   });
-  socket.on("signal", async (msg: SignalMessage) => {
+  socket.on("signal", async (peername: string, msg: SignalMessage) => {
     if (msg.type === "offer") {
       const offerCollision = makingOffer || pc.signalingState !== "stable";
 
@@ -284,14 +294,17 @@
 
       socket.emit("signal", {
         room: roomName,
-        userName: userName,
+        username: userName,
         data: { type: "answer", answer: pc.localDescription },
       });
+      peerName = peername;
     } else if (msg.type === "answer") {
       await pc.setRemoteDescription(msg.answer);
       remoteDescSet = true;
       for (const c of pendingCandidates) await pc.addIceCandidate(c);
       pendingCandidates = [];
+
+      peerName = peername;
     } else if (msg.type === "ice-candidate") {
       try {
         if (remoteDescSet) {
@@ -306,10 +319,10 @@
   });
 
   // Handle incoming signals
-  let dialogRef: HTMLDialogElement|undefined = $state();
+  let dialogRef: HTMLDialogElement | undefined = $state();
 
   onMount(async () => {
-    if(dialogRef) dialogRef.showModal();
+    if (dialogRef) dialogRef.showModal();
     await getPermissions();
     await getDevices();
   });
@@ -327,6 +340,7 @@
     {outgoingVideoPlaying}
     {incomingVideoPlaying}
     {connected}
+    {peerName}
   />
   <MediaControl
     bind:outgoingStream

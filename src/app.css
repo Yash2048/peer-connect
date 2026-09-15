@@ -23,7 +23,7 @@
     letter-spacing: 0.18px;
     color-scheme: light dark;
     font-synthesis: none;
-    text-rendering: optimizeLegibility;
+    text-rendering: geometricPrecision;
 
     @media (max-width: 1024px) {
       font-size: 16px;
