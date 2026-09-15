@@ -4,12 +4,14 @@
   let {
     outgoingVideoPlaying,
     incomingVideoPlaying,
+    incomingAudioPlaying,
     connected,
     peerName,
     onVideoRef,
   }: {
     outgoingVideoPlaying: boolean;
     incomingVideoPlaying: boolean;
+    incomingAudioPlaying: boolean;
     connected: boolean;
     peerName: string;
     onVideoRef: (iv: HTMLVideoElement, ov: HTMLVideoElement) => void;
@@ -67,7 +69,7 @@
     <div class="overlay">
       <div class="name">
         <div class="icon">
-          {#if false}
+          {#if incomingAudioPlaying}
             <IconMSMicOutline height="24px" width="24px" />
           {:else}
             <IconMSMicOffOutline height="24px" width="24px" />

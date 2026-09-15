@@ -85,10 +85,17 @@
   const toggleAudio = async () => {
     console.info("toggleAudio fired!");
     if (audioPlaying) {
+      const senders = pc.getSenders();
       const audioTracks = outgoingStream?.getAudioTracks();
+
       audioTracks?.forEach((track) => {
+        senders.forEach((sender) => {
+          if (sender.track === track) {
+            pc.removeTrack(sender);
+          }
+        });
         track.stop();
-        outgoingStream?.removeTrack(track);
+        if (outgoingStream) outgoingStream.removeTrack(track);
       });
       audioPlaying = false;
     } else {
@@ -332,13 +339,13 @@
   <button aria-label="screen-share-toggle" class="screen-share-toggle">
     {#if false}
       <IconMSScreenShare height="24px" width="24px" />
-      {:else}
+    {:else}
       <IconMSScreenShareOutline height="24px" width="24px" />
-      {/if}
-    </button>
-    
-    <button aria-label="call-end-toggle" class="end-call">
-      <IconMSCallEndOutline height="24px" width="24px" />
+    {/if}
+  </button>
+
+  <button aria-label="call-end-toggle" class="end-call">
+    <IconMSCallEndOutline height="24px" width="24px" />
   </button>
 </section>
 
@@ -410,7 +417,7 @@
       background-color: transparent;
     }
   }
-  
+
   .end-call {
     --btn-bg: red;
   }

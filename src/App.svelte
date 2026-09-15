@@ -8,6 +8,7 @@
   // State
   let outgoingVideoPlaying = $state(true);
   let incomingVideoPlaying = $state(false);
+  let incomingAudioPlaying = $state(false);
   // video elements for incoming and outgoing streams
   let outgoingVideo: HTMLVideoElement | undefined = $state();
   let incomingVideo: HTMLVideoElement | undefined = $state();
@@ -186,14 +187,24 @@
   const handleTrackEvent = (trackEv: RTCTrackEvent) => {
     console.info("handleTrackEvent fired!");
 
+    console.group("Track Added");
+    console.log(`Track kind: ${trackEv.track.kind}`);
+    console.log(`Track id: ${trackEv.track.id}`);
+    console.groupEnd();
     if (!incomingStream) incomingStream = trackEv.streams[0];
     if (trackEv.track.kind == "video") incomingVideoPlaying = true;
+    if (trackEv.track.kind == "audio") incomingAudioPlaying = true;
 
     if (incomingVideo && !incomingVideo.srcObject)
       incomingVideo.srcObject = incomingStream;
 
     incomingStream.onremovetrack = (rmTrackEv) => {
+      console.group("Track Removed");
+      console.log(`Track kind: ${rmTrackEv.track.kind}`);
+      console.log(`Track id: ${rmTrackEv.track.id}`);
+      console.groupEnd();
       if (rmTrackEv.track.kind === "video") incomingVideoPlaying = false;
+      if (rmTrackEv.track.kind === "audio") incomingAudioPlaying = false;
       if (incomingVideo) incomingVideo.srcObject = incomingStream;
     };
   };
@@ -339,6 +350,7 @@
     {onVideoRef}
     {outgoingVideoPlaying}
     {incomingVideoPlaying}
+    {incomingAudioPlaying}
     {connected}
     {peerName}
   />
