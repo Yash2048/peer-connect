@@ -340,12 +340,20 @@
     await getPermissions();
     await getDevices();
   });
+
+  async function toClipboard() {
+    const clipboardItem = new ClipboardItem({"text/plain": roomName});
+    await navigator.clipboard.write([clipboardItem]);
+  }
 </script>
 
 <Dialog {joinRoom} {onFormSubmit} {onDialogRef} />
 <main>
   <header class="user-info">
-    <span> <span> Room </span> <span>{roomName ? roomName : "NA"}</span></span>
+    <span>
+      <span> Room </span>
+      <button role="button" onclick={toClipboard}>{roomName ? roomName : "NA"}</button></span
+    >
     <span> <span>State</span> <span>{connectionState}</span></span>
     <span><span>Username</span> <span>{userName ? userName : "NA"}</span></span>
   </header>
@@ -389,9 +397,14 @@
     justify-content: space-between;
     gap: 2.5rem;
     span {
-      /* display: flex; */
-      /* span:first-child{color: var();} */
-
+      button{
+        transition: all 0.25s;
+        --btn-bg:transparent;
+        --btn-clr:var(--accent);
+        &:hover{
+          --btn-clr: hsl(from var(--accent) h s calc(l + 10));
+        }
+      }
       gap: 0.75rem;
       span:last-child {
         color: var(--accent);
