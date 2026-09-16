@@ -263,7 +263,7 @@
   pc.onnegotiationneeded = handleNegotiationNeededEvent;
 
   //socket
-  socket.on("joined", async (roomname,{ isInitiator }) => {
+  socket.on("joined", async (roomname, { isInitiator }) => {
     roomName = roomname;
     isInitiator = isInitiator;
     if (isInitiator) {
@@ -344,11 +344,11 @@
 
 <Dialog {joinRoom} {onFormSubmit} {onDialogRef} />
 <main>
-  <div class="user-info">
-    <span>Room <span>{roomName}</span></span>
-    <span> State <span>{connectionState}</span></span>
-    <span>Username <span>{userName}</span></span>
-  </div>
+  <header class="user-info">
+    <span> <span> Room </span> <span>{roomName ? roomName : "NA"}</span></span>
+    <span> <span>State</span> <span>{connectionState}</span></span>
+    <span><span>Username</span> <span>{userName ? userName : "NA"}</span></span>
+  </header>
   <Calls
     {onVideoRef}
     {outgoingVideoPlaying}
@@ -387,10 +387,24 @@
   .user-info {
     display: flex;
     justify-content: space-between;
+    gap: 2.5rem;
     span {
-      padding: 0 1rem;
-      span {
+      /* display: flex; */
+      /* span:first-child{color: var();} */
+
+      gap: 0.75rem;
+      span:last-child {
+        color: var(--accent);
         text-decoration: underline;
+      }
+    }
+
+    @media (max-width: 650px) {
+      /* color: red; */
+      & span {
+        /* display: flex; */
+        display: grid;
+        place-items: center;
       }
     }
   }
