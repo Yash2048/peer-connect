@@ -263,7 +263,8 @@
   pc.onnegotiationneeded = handleNegotiationNeededEvent;
 
   //socket
-  socket.on("joined", async ({ isInitiator }) => {
+  socket.on("joined", async (roomname,{ isInitiator }) => {
+    roomName = roomname;
     isInitiator = isInitiator;
     if (isInitiator) {
     } else {
@@ -344,9 +345,9 @@
 <Dialog {joinRoom} {onFormSubmit} {onDialogRef} />
 <main>
   <div class="user-info">
-    <span>Room No: <span>{roomName}</span></span>
-    <span> State: <span>{connectionState}</span></span>
-    <span>Username: <span>{userName}</span></span>
+    <span>Room <span>{roomName}</span></span>
+    <span> State <span>{connectionState}</span></span>
+    <span>Username <span>{userName}</span></span>
   </div>
   <Calls
     {onVideoRef}

@@ -28,7 +28,6 @@
                     bind:value={roomName}
                     placeholder="Meeting"
                     minlength="1"
-                    required
                     autocomplete="off"
                 />
             </label>

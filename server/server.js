@@ -1,26 +1,35 @@
 import { Server } from 'socket.io';
+import { randomBytes } from 'node:crypto';
 
 const io = new Server(8080, {
   cors: { origin: '*' },
   transports: ['polling', 'websocket'],
 });
 
+const generateRoomName = () => {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(randomBytes(10), b => chars[b % chars.length]).join('');
+}
+
 
 io.on('connection', (socket) => {
   let users = 0;
-  socket.on('join', (room, username) => {
+  socket.on('join', (room) => {
     users++;
     console.group(`User #${users}`)
     console.log('New User Joined')
-    console.log("Username: ",username )
-    console.log("Room name: ",room )
+    console.log("Room name: ", room)
     console.groupEnd(`User #${users}`)
+    if (room == "") {
+      room = generateRoomName();
+    }
+
     const clientsInRoom = io.sockets.adapter.rooms.get(room)?.size ?? 0;
     socket.join(room);
-    socket.emit('joined', { isInitiator: clientsInRoom === 0 })
+    socket.emit('joined', room, { isInitiator: clientsInRoom === 0 })
   });
-  
-  
+
+
   // Relay offer, answer, ice-candidate to everyone else in the room
   socket.on('signal', ({ room, username, data }) => {
     console.log('User sent a signal')
