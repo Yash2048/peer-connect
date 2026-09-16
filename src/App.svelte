@@ -203,9 +203,11 @@
       console.log(`Track kind: ${rmTrackEv.track.kind}`);
       console.log(`Track id: ${rmTrackEv.track.id}`);
       console.groupEnd();
-      if (rmTrackEv.track.kind === "video") incomingVideoPlaying = false;
+      if (rmTrackEv.track.kind === "video") {
+        incomingVideoPlaying = false;
+        if (incomingVideo) incomingVideo.srcObject = incomingStream;
+      }
       if (rmTrackEv.track.kind === "audio") incomingAudioPlaying = false;
-      if (incomingVideo) incomingVideo.srcObject = incomingStream;
     };
   };
   const handleNegotiationNeededEvent = async () => {
