@@ -342,8 +342,7 @@
   });
 
   async function toClipboard() {
-    const clipboardItem = new ClipboardItem({"text/plain": roomName});
-    await navigator.clipboard.write([clipboardItem]);
+    await navigator.clipboard.writeText(roomName);
   }
 </script>
 
@@ -352,7 +351,7 @@
   <header class="user-info">
     <span>
       <span> Room </span>
-      <button role="button" onclick={toClipboard}>{roomName ? roomName : "NA"}</button></span
+      <button onclick={toClipboard}>{roomName ? roomName : "NA"}</button></span
     >
     <span> <span>State</span> <span>{connectionState}</span></span>
     <span><span>Username</span> <span>{userName ? userName : "NA"}</span></span>
@@ -397,12 +396,29 @@
     justify-content: space-between;
     gap: 2.5rem;
     span {
-      button{
+      button {
+        position: relative;
         transition: all 0.25s;
-        --btn-bg:transparent;
-        --btn-clr:var(--accent);
-        &:hover{
-          --btn-clr: hsl(from var(--accent) h s calc(l + 10));
+        --btn-bg: transparent;
+        --btn-clr: var(--accent);
+        --icon-clr: var(--btn-clr);
+        text-decoration: underline;
+
+        &::after {
+          position: absolute;
+          top: 0.1rem;
+          right: -1.5rem;
+          margin-inline: 0.25rem;
+          display: block;
+          content: "";
+          width: 16px;
+          height: 16px;
+          background-color: var(--icon-clr);
+          mask: url(./assets/copy.svg) no-repeat center / contain;
+          -webkit-mask: url(./assets/copy.svg) no-repeat center / contain;
+        }
+        &:hover {
+          --icon-clr: hsl(from var(--accent) h s calc(l + 10));
         }
       }
       gap: 0.75rem;
