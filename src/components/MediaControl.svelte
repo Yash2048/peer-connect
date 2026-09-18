@@ -20,30 +20,38 @@
     audioInputDevices: MediaDeviceInfo[];
     audioOutputDevices: MediaDeviceInfo[];
     videoInputDevices: MediaDeviceInfo[];
-    pc: RTCPeerConnection;
+    pc: RTCPeerConnection | null;
     selectedAudioInput: string;
     selectedVideoInput: string;
     deviceConstraints: Record<string, MediaStreamConstraints>;
   } = $props();
 
-  let audioPlaying = $state(true);
+  let localAudioPlaying = $state(true);
 
   const toggleVideo = async () => {
     console.info("toggleFeed fired!");
 
     if (localVideoPlaying) {
-      const senders = pc.getSenders();
       const videoTracks = localStream?.getVideoTracks();
 
-      videoTracks?.forEach((track) => {
-        senders.forEach((sender) => {
-          if (sender.track === track) {
-            pc.removeTrack(sender);
-          }
+      if (pc) {
+        const senders = pc.getSenders();
+        videoTracks?.forEach((track) => {
+          senders.forEach((sender) => {
+            if (sender.track === track) {
+              pc.removeTrack(sender);
+            }
+          });
+          track.stop();
+          if (localStream) localStream.removeTrack(track);
         });
-        track.stop();
-        if (localStream) localStream.removeTrack(track);
-      });
+      } else {
+        videoTracks?.forEach((track) => {
+          track.stop();
+          if (localStream) localStream.removeTrack(track);
+        });
+      }
+
       if (!localVideoElement) {
         console.error("localVideoElement is undefined.");
         return;
@@ -72,7 +80,8 @@
         } else {
           localStream.addTrack(videoTrack);
         }
-        pc.addTrack(videoTrack, localStream);
+
+        if (pc) pc.addTrack(videoTrack, localStream);
         // localVideoElement.srcObject = stream;
         localVideoPlaying = true;
       } catch (error) {
@@ -83,20 +92,27 @@
 
   const toggleAudio = async () => {
     console.info("toggleAudio fired!");
-    if (audioPlaying) {
-      const senders = pc.getSenders();
+    if (localAudioPlaying) {
       const audioTracks = localStream?.getAudioTracks();
 
-      audioTracks?.forEach((track) => {
-        senders.forEach((sender) => {
-          if (sender.track === track) {
-            pc.removeTrack(sender);
-          }
+      if (pc) {
+        const senders = pc.getSenders();
+        audioTracks?.forEach((track) => {
+          senders.forEach((sender) => {
+            if (sender.track === track) {
+              pc.removeTrack(sender);
+            }
+          });
+          track.stop();
+          if (localStream) localStream.removeTrack(track);
         });
-        track.stop();
-        if (localStream) localStream.removeTrack(track);
-      });
-      audioPlaying = false;
+      } else {
+        audioTracks?.forEach((track) => {
+          track.stop();
+          if (localStream) localStream.removeTrack(track);
+        });
+      }
+      localAudioPlaying = false;
     } else {
       try {
         const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -110,9 +126,9 @@
         } else {
           localStream.addTrack(audioTrack);
         }
-        pc.addTrack(audioTrack, localStream);
+        if (pc) pc.addTrack(audioTrack, localStream);
 
-        audioPlaying = true;
+        localAudioPlaying = true;
       } catch (error) {
         console.error(error);
         if (localVideoElement) localVideoElement.srcObject = localStream;
@@ -122,7 +138,7 @@
 
   const changeAudioInput = async (e: Event) => {
     console.info("changeAudioInput fired!");
-    if (!audioPlaying) {
+    if (!localAudioPlaying) {
       console.warn("Can't change Audio Input while muted.");
       return;
     }
@@ -145,8 +161,10 @@
         localStream.removeTrack(oldAudioTrack);
         localStream.addTrack(audioTrack);
       }
-      const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
-      await sender?.replaceTrack(audioTrack);
+      if (pc) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
+        await sender?.replaceTrack(audioTrack);
+      }
       // if (localVideoElement && stream) localVideoElement.srcObject = stream;
     } catch (error) {
       console.error(error);
@@ -224,8 +242,10 @@
         localStream.addTrack(newVideoTrack);
       }
 
-      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-      await sender?.replaceTrack(newVideoTrack);
+      if (pc) {
+        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+        await sender?.replaceTrack(newVideoTrack);
+      }
 
       if (localVideoElement && localStream)
         localVideoElement.srcObject = localStream;
@@ -286,7 +306,7 @@
         class="audio-toggle-button"
         onclick={toggleAudio}
       >
-        {#if audioPlaying}
+        {#if localAudioPlaying}
           <IconMSMicOutline height="24px" width="24px" />
         {:else}
           <IconMSMicOffOutline height="24px" width="24px" />

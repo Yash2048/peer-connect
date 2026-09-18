@@ -1,6 +1,7 @@
 <script lang="ts">
   import "./app.css";
   import { onMount } from "svelte";
+  import { io } from "socket.io-client";
   import MediaControl from "./components/MediaControl.svelte";
   import Calls from "./components/Calls.svelte";
   import Dialog from "./components/Dialog.svelte";
@@ -27,6 +28,12 @@
   let selectedVideoInput = $state("");
 
   let deviceConstraints: Record<string, MediaStreamConstraints> = $state({});
+  let roomName = $state("");
+  let userName = $state("");
+  let peerName = $state("");
+  let makingOffer = false;
+  let isInitiator = false;
+
   // gets permissions for IO at mount time
   const getPermissions = async () => {
     console.info("getPermissions fired!");
@@ -110,6 +117,25 @@
     await navigator.clipboard.writeText(roomName);
   }
 
+  const closeCall = () => {
+    pc.onicecandidate = null;
+    pc.ontrack = null;
+    pc.onconnectionstatechange = null;
+    pc.onnegotiationneeded = null;
+
+    remoteStream?.getTracks().forEach((track) => track.stop());
+    remoteStream = null;
+    if (remoteVideoElement) remoteVideoElement.srcObject = null;
+    remoteAudioPlaying = false;
+    remoteVideoPlaying = false;
+    connected = false;
+    makingOffer = false;
+    peerName = "";
+
+    pc.close();
+    pc = null;
+  };
+
   // Callback Props
   const onFormSubmit = (roomname: string, username: string) => {
     roomName = roomname;
@@ -124,13 +150,6 @@
   };
 
   // WebRTC code
-  let roomName = $state("");
-  let userName = $state("");
-  let peerName = $state("");
-  import { io } from "socket.io-client";
-  let makingOffer = false;
-  let isInitiator = false;
-
   const socket = io(import.meta.env.VITE_SIGNALING_SERVER_URL, {
     transports: ["websocket", "polling"],
     upgrade: true,
@@ -144,12 +163,12 @@
   let rtcConfig: RTCConfiguration = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   };
-  let pc = new RTCPeerConnection(rtcConfig);
+  let pc: RTCPeerConnection | null = $state(new RTCPeerConnection(rtcConfig));
 
   let pendingCandidates: RTCIceCandidateInit[] = [];
   let remoteDescSet = false;
   let ignoreOffer = false;
-  const polite = !isInitiator; // one peer must be polite, the other impolite
+  const polite = $derived(!isInitiator); // one peer must be polite, the other impolite
 
   // functions
   const joinRoom = () => {
@@ -157,10 +176,14 @@
   };
 
   const startCall = async () => {
+    if (!pc) {
+      console.error("pc is null");
+      return;
+    }
     console.info("startCall fired!");
     if (localStream)
       localStream.getTracks().forEach((track) => {
-        if (localStream) pc.addTrack(track, localStream);
+        if (localStream && pc) pc.addTrack(track, localStream);
       });
     else {
       console.error("stream is undefined");
@@ -176,12 +199,13 @@
   };
 
   // handlers
-
   const handleRemoveTrackEvent = (e: MediaStreamTrackEvent) => {
+    console.info("handleRemoveTrackEvent fired!");
     console.group("Track Removed");
     console.log(`Track kind: ${e.track.kind}`);
     console.log(`Track id: ${e.track.id}`);
     console.groupEnd();
+    console.log(e.track);
     if (e.track.kind === "video") {
       remoteVideoPlaying = false;
       if (remoteVideoElement) remoteVideoElement.srcObject = remoteStream;
@@ -237,14 +261,15 @@
         connected = true;
         break;
       case "disconnected":
-        connected = false;
-        if (remoteVideoElement) remoteVideoElement.srcObject = null;
-        break;
+      // connected = false;
+      // if (remoteVideoElement) remoteVideoElement.srcObject = null;
+      // break;
       case "failed":
-        // pc.setConfiguration(rtcConfig);
-        pc.restartIce();
-        break;
+      // pc.setConfiguration(rtcConfig);
+      // pc.restartIce();
+      // break;
       case "closed":
+        closeCall();
         break;
       case "connecting":
         break;
@@ -256,11 +281,16 @@
   };
 
   // events
-  pc.onicecandidate = handleICECandidateEvent;
-  pc.ontrack = handleTrackEvent;
-  pc.onconnectionstatechange = handleConnectionStateChangeEvent;
-  pc.onnegotiationneeded = handleNegotiationNeededEvent;
-
+  // svelte-ignore state_referenced_locally
+  if (pc) {
+    Object.assign(pc, {
+      // this is the first time I've seen this. #AI gen
+      onicecandidate: handleICECandidateEvent,
+      ontrack: handleTrackEvent,
+      onconnectionstatechange: handleConnectionStateChangeEvent,
+      onnegotiationneeded: handleNegotiationNeededEvent,
+    });
+  }
   //socket
   socket.on("joined", async (roomname, { isInitiator }) => {
     roomName = roomname;
@@ -271,6 +301,13 @@
     }
   });
   socket.on("signal", async (peername: string, msg: SignalMessage) => {
+    if (pc === null) {
+      pc = new RTCPeerConnection(rtcConfig);
+      pc.onicecandidate = handleICECandidateEvent;
+      pc.ontrack = handleTrackEvent;
+      pc.onconnectionstatechange = handleConnectionStateChangeEvent;
+      pc.onnegotiationneeded = handleNegotiationNeededEvent;
+    }
     if (msg.type === "offer") {
       const offerCollision = makingOffer || pc.signalingState !== "stable";
 
