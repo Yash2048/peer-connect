@@ -21,8 +21,6 @@
   let remoteStream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
   let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
-  let ICEGatheringState: RTCIceGathererState | "NA" = $state("NA");
-  let RTCSignalingState: RTCSignalingState | "NA" = $state("NA");
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let selectedAudioInput = $state("");
@@ -108,6 +106,9 @@
     );
     videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
+  async function toClipboard() {
+    await navigator.clipboard.writeText(roomName);
+  }
 
   // Callback Props
   const onFormSubmit = (roomname: string, username: string) => {
@@ -175,6 +176,18 @@
   };
 
   // handlers
+
+  const handleRemoveTrackEvent = (e: MediaStreamTrackEvent) => {
+    console.group("Track Removed");
+    console.log(`Track kind: ${e.track.kind}`);
+    console.log(`Track id: ${e.track.id}`);
+    console.groupEnd();
+    if (e.track.kind === "video") {
+      remoteVideoPlaying = false;
+      if (remoteVideoElement) remoteVideoElement.srcObject = remoteStream;
+    }
+    if (e.track.kind === "audio") remoteAudioPlaying = false;
+  };
   const handleICECandidateEvent = (e: RTCPeerConnectionIceEvent) => {
     if (e.candidate) {
       socket.emit("signal", {
@@ -198,17 +211,7 @@
     if (remoteVideoElement && !remoteVideoElement.srcObject)
       remoteVideoElement.srcObject = remoteStream;
 
-    remoteStream.onremovetrack = (rmTrackEv) => {
-      console.group("Track Removed");
-      console.log(`Track kind: ${rmTrackEv.track.kind}`);
-      console.log(`Track id: ${rmTrackEv.track.id}`);
-      console.groupEnd();
-      if (rmTrackEv.track.kind === "video") {
-        remoteVideoPlaying = false;
-        if (remoteVideoElement) remoteVideoElement.srcObject = remoteStream;
-      }
-      if (rmTrackEv.track.kind === "audio") remoteAudioPlaying = false;
-    };
+    remoteStream.onremovetrack = handleRemoveTrackEvent;
   };
   const handleNegotiationNeededEvent = async () => {
     try {
@@ -251,10 +254,6 @@
         break;
     }
   };
-  const handleRemoveTrackEvent = (e: Event) => {};
-  const handleICEConnectionStateChangeEvent = (e: Event) => {};
-  const handleICEGatheringStateChangeEvent = (e: Event) => {};
-  const handleSignalingStateChangeEvent = (e: Event) => {};
 
   // events
   pc.onicecandidate = handleICECandidateEvent;
@@ -340,10 +339,6 @@
     await getPermissions();
     await getDevices();
   });
-
-  async function toClipboard() {
-    await navigator.clipboard.writeText(roomName);
-  }
 </script>
 
 <Dialog {joinRoom} {onFormSubmit} {onDialogRef} />
