@@ -12,6 +12,7 @@
     selectedVideoInput,
     pc,
     deviceConstraints,
+    endCall,
   }: {
     localVideoPlaying: boolean;
     localStream: MediaStream | null;
@@ -24,6 +25,7 @@
     selectedAudioInput: string;
     selectedVideoInput: string;
     deviceConstraints: Record<string, MediaStreamConstraints>;
+    endCall: () => void;
   } = $props();
 
   let localAudioPlaying = $state(true);
@@ -363,7 +365,7 @@
     {/if}
   </button>
 
-  <button aria-label="call-end-toggle" class="end-call">
+  <button onclick={endCall} aria-label="call-end-toggle" class="end-call">
     <IconMSCallEndOutline height="24px" width="24px" />
   </button>
 </section>

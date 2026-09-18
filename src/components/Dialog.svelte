@@ -7,7 +7,7 @@
     let dialogRef: HTMLDialogElement | undefined = $state();
 
     onMount(() => {
-        if(dialogRef) onDialogRef(dialogRef);
+        if (dialogRef) onDialogRef(dialogRef);
     });
 </script>
 
@@ -16,6 +16,8 @@
         method="dialog"
         onsubmit={() => {
             onFormSubmit(roomName, userName);
+            roomName = "";
+            userName = "";
             joinRoom();
         }}
     >

@@ -117,23 +117,33 @@
     await navigator.clipboard.writeText(roomName);
   }
 
-  const closeCall = () => {
-    pc.onicecandidate = null;
-    pc.ontrack = null;
-    pc.onconnectionstatechange = null;
-    pc.onnegotiationneeded = null;
+  const closeConnection = () => {
+    if (pc) {
+      pc.onicecandidate = null;
+      pc.ontrack = null;
+      pc.onconnectionstatechange = null;
+      pc.onnegotiationneeded = null;
 
-    remoteStream?.getTracks().forEach((track) => track.stop());
-    remoteStream = null;
-    if (remoteVideoElement) remoteVideoElement.srcObject = null;
-    remoteAudioPlaying = false;
-    remoteVideoPlaying = false;
-    connected = false;
-    makingOffer = false;
-    peerName = "";
+      remoteStream?.getTracks().forEach((track) => track.stop());
+      remoteStream = null;
+      if (remoteVideoElement) remoteVideoElement.srcObject = null;
+      remoteAudioPlaying = false;
+      remoteVideoPlaying = false;
+      connected = false;
+      makingOffer = false;
+      peerName = "";
 
-    pc.close();
-    pc = null;
+      pc.close();
+      pc = null;
+    }
+  };
+  const endCall = () => {
+    closeConnection();
+    roomName = "";
+    userName = "";
+    connectionState = "NA";
+    socket.emit("leave");
+    if (dialogRef) dialogRef.showModal();
   };
 
   // Callback Props
@@ -177,8 +187,7 @@
 
   const startCall = async () => {
     if (!pc) {
-      console.error("pc is null");
-      return;
+      initPeerConnection();
     }
     console.info("startCall fired!");
     if (localStream)
@@ -196,6 +205,14 @@
       username: userName,
       data: { type: "offer", offer },
     });
+  };
+
+  const initPeerConnection = () => {
+    pc = new RTCPeerConnection(rtcConfig);
+    pc.onicecandidate = handleICECandidateEvent;
+    pc.ontrack = handleTrackEvent;
+    pc.onconnectionstatechange = handleConnectionStateChangeEvent;
+    pc.onnegotiationneeded = handleNegotiationNeededEvent;
   };
 
   // handlers
@@ -260,16 +277,16 @@
       case "connected":
         connected = true;
         break;
+      case "failed":
+        // pc.setConfiguration(rtcConfig);
+        pc.restartIce();
+        break;
       case "disconnected":
       // connected = false;
       // if (remoteVideoElement) remoteVideoElement.srcObject = null;
       // break;
-      case "failed":
-      // pc.setConfiguration(rtcConfig);
-      // pc.restartIce();
-      // break;
       case "closed":
-        closeCall();
+        closeConnection();
         break;
       case "connecting":
         break;
@@ -302,11 +319,7 @@
   });
   socket.on("signal", async (peername: string, msg: SignalMessage) => {
     if (pc === null) {
-      pc = new RTCPeerConnection(rtcConfig);
-      pc.onicecandidate = handleICECandidateEvent;
-      pc.ontrack = handleTrackEvent;
-      pc.onconnectionstatechange = handleConnectionStateChangeEvent;
-      pc.onnegotiationneeded = handleNegotiationNeededEvent;
+      initPeerConnection();
     }
     if (msg.type === "offer") {
       const offerCollision = makingOffer || pc.signalingState !== "stable";
@@ -408,6 +421,7 @@
     {selectedVideoInput}
     {pc}
     {deviceConstraints}
+    {endCall}
   />
 </main>
 
