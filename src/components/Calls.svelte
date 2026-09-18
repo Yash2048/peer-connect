@@ -2,22 +2,22 @@
   import { onMount } from "svelte";
   import "../app.css";
   let {
-    outgoingVideoPlaying,
-    incomingVideoPlaying,
-    incomingAudioPlaying,
+    localVideoPlaying,
+    remoteVideoPlaying,
+    remoteAudioPlaying,
     connected,
     peerName,
     onVideoRef,
   }: {
-    outgoingVideoPlaying: boolean;
-    incomingVideoPlaying: boolean;
-    incomingAudioPlaying: boolean;
+    localVideoPlaying: boolean;
+    remoteVideoPlaying: boolean;
+    remoteAudioPlaying: boolean;
     connected: boolean;
     peerName: string;
-    onVideoRef: (iv: HTMLVideoElement, ov: HTMLVideoElement) => void;
+    onVideoRef: (rv: HTMLVideoElement, lv: HTMLVideoElement) => void;
   } = $props();
-  let iv: HTMLVideoElement | undefined = $state();
-  let ov: HTMLVideoElement | undefined = $state();
+  let rv: HTMLVideoElement | undefined = $state();
+  let lv: HTMLVideoElement | undefined = $state();
   import IconMSMicOutline from "~icons/material-symbols/mic-outline";
   import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
 
@@ -28,13 +28,13 @@
   );
 
   onMount(() => {
-    if (iv && ov) onVideoRef(iv, ov);
+    if (rv && lv) onVideoRef(rv, lv);
   });
 </script>
 
 <section class="feed">
   <div
-    class="outgoing-video-container video-container"
+    class="local-video-container video-container"
     class:minimize={connected}
   >
     <div class="overlay">
@@ -51,11 +51,11 @@
       <!-- <div class="pfp"></div> -->
     </div>
     <video
-      class="outgoing"
-      class:play={outgoingVideoPlaying}
-      class:playOff={!outgoingVideoPlaying}
-      id="outgoing"
-      bind:this={ov}
+      class="local"
+      class:play={localVideoPlaying}
+      class:playOff={!localVideoPlaying}
+      id="local"
+      bind:this={lv}
       autoplay
       muted
       playsinline
@@ -64,12 +64,12 @@
   </div>
   <div
     class:hidden={!connected}
-    class="incoming-video-container video-container"
+    class="remote-video-container video-container"
   >
     <div class="overlay">
       <div class="name">
         <div class="icon">
-          {#if incomingAudioPlaying}
+          {#if remoteAudioPlaying}
             <IconMSMicOutline height="24px" width="24px" />
           {:else}
             <IconMSMicOffOutline height="24px" width="24px" />
@@ -77,16 +77,16 @@
         </div>
         <span>{peerName}</span>
       </div>
-      {#if !incomingVideoPlaying}
+      {#if !remoteVideoPlaying}
         <div class="pfp">{initials}</div>
       {/if}
     </div>
     <video
-      class="incoming"
-      class:play={incomingVideoPlaying}
-      class:playOff={!incomingVideoPlaying}
-      id="incoming"
-      bind:this={iv}
+      class="remote"
+      class:play={remoteVideoPlaying}
+      class:playOff={!remoteVideoPlaying}
+      id="remote"
+      bind:this={rv}
       autoplay
       playsinline
       tabindex="-1"
@@ -129,7 +129,7 @@
     }
   }
 
-  .incoming-video-container {
+  .remote-video-container {
     /* outline:  1rem blue solid; */
     width: 100%;
   }
@@ -138,10 +138,10 @@
     max-height: 100%;
   }
 
-  .incoming-video-container {
+  .remote-video-container {
     background-color: antiquewhite;
   }
-  .outgoing-video-container {
+  .local-video-container {
     background-color: var(--muted);
     video {
       z-index: 0;

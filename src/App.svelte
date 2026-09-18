@@ -6,19 +6,19 @@
   import Dialog from "./components/Dialog.svelte";
 
   // State
-  let outgoingVideoPlaying = $state(true);
-  let incomingVideoPlaying = $state(false);
-  let incomingAudioPlaying = $state(false);
-  // video elements for incoming and outgoing streams
-  let outgoingVideo: HTMLVideoElement | undefined = $state();
-  let incomingVideo: HTMLVideoElement | undefined = $state();
+  let localVideoPlaying = $state(true);
+  let remoteVideoPlaying = $state(false);
+  let remoteAudioPlaying = $state(false);
+  // video elements for remote and local streams
+  let localVideoElement: HTMLVideoElement | undefined = $state();
+  let remoteVideoElement: HTMLVideoElement | undefined = $state();
   // to store the devices from the stream
   let audioInputDevices: MediaDeviceInfo[] = $state([]);
   let audioOutputDevices: MediaDeviceInfo[] = $state([]);
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
   // The stream. Client's stream
-  let outgoingStream: MediaStream | null = $state(null);
-  let incomingStream: MediaStream | null = $state(null);
+  let localStream: MediaStream | null = $state(null);
+  let remoteStream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
   let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
   let ICEGatheringState: RTCIceGathererState | "NA" = $state("NA");
@@ -78,18 +78,18 @@
       selectedVideoInput = videoCapabilities.deviceId
         ? videoCapabilities.deviceId
         : "";
-      outgoingStream = new MediaStream([
+      localStream = new MediaStream([
         ...audioStream.getAudioTracks(),
         ...videoStream.getVideoTracks(),
       ]);
 
-      if (!outgoingVideo) {
-        console.error("outgoingVideo is undefined.");
+      if (!localVideoElement) {
+        console.error("localVideo is undefined.");
         return;
       }
 
-      outgoingVideo.srcObject = outgoingStream;
-      outgoingVideoPlaying = true;
+      localVideoElement.srcObject = localStream;
+      localVideoPlaying = true;
       console.log("Stream is created");
     } catch (error) {
       console.error(error);
@@ -117,9 +117,9 @@
   const onDialogRef = (dr: HTMLDialogElement) => {
     dialogRef = dr;
   };
-  const onVideoRef = (iv: HTMLVideoElement, ov: HTMLVideoElement) => {
-    incomingVideo = iv;
-    outgoingVideo = ov;
+  const onVideoRef = (rv: HTMLVideoElement, lv: HTMLVideoElement) => {
+    remoteVideoElement = rv;
+    localVideoElement = lv;
   };
 
   // WebRTC code
@@ -157,9 +157,9 @@
 
   const startCall = async () => {
     console.info("startCall fired!");
-    if (outgoingStream)
-      outgoingStream.getTracks().forEach((track) => {
-        if (outgoingStream) pc.addTrack(track, outgoingStream);
+    if (localStream)
+      localStream.getTracks().forEach((track) => {
+        if (localStream) pc.addTrack(track, localStream);
       });
     else {
       console.error("stream is undefined");
@@ -191,23 +191,23 @@
     console.log(`Track kind: ${trackEv.track.kind}`);
     console.log(`Track id: ${trackEv.track.id}`);
     console.groupEnd();
-    if (!incomingStream) incomingStream = trackEv.streams[0];
-    if (trackEv.track.kind == "video") incomingVideoPlaying = true;
-    if (trackEv.track.kind == "audio") incomingAudioPlaying = true;
+    if (!remoteStream) remoteStream = trackEv.streams[0];
+    if (trackEv.track.kind == "video") remoteVideoPlaying = true;
+    if (trackEv.track.kind == "audio") remoteAudioPlaying = true;
 
-    if (incomingVideo && !incomingVideo.srcObject)
-      incomingVideo.srcObject = incomingStream;
+    if (remoteVideoElement && !remoteVideoElement.srcObject)
+      remoteVideoElement.srcObject = remoteStream;
 
-    incomingStream.onremovetrack = (rmTrackEv) => {
+    remoteStream.onremovetrack = (rmTrackEv) => {
       console.group("Track Removed");
       console.log(`Track kind: ${rmTrackEv.track.kind}`);
       console.log(`Track id: ${rmTrackEv.track.id}`);
       console.groupEnd();
       if (rmTrackEv.track.kind === "video") {
-        incomingVideoPlaying = false;
-        if (incomingVideo) incomingVideo.srcObject = incomingStream;
+        remoteVideoPlaying = false;
+        if (remoteVideoElement) remoteVideoElement.srcObject = remoteStream;
       }
-      if (rmTrackEv.track.kind === "audio") incomingAudioPlaying = false;
+      if (rmTrackEv.track.kind === "audio") remoteAudioPlaying = false;
     };
   };
   const handleNegotiationNeededEvent = async () => {
@@ -235,7 +235,7 @@
         break;
       case "disconnected":
         connected = false;
-        if (incomingVideo) incomingVideo.srcObject = null;
+        if (remoteVideoElement) remoteVideoElement.srcObject = null;
         break;
       case "failed":
         // pc.setConfiguration(rtcConfig);
@@ -282,19 +282,19 @@
         await pc.setLocalDescription({ type: "rollback" });
       }
 
-      if (!outgoingStream) {
+      if (!localStream) {
         console.error("stream is undefined");
         return;
       }
 
-      outgoingStream.getTracks().forEach((track) => {
+      localStream.getTracks().forEach((track) => {
         const alreadySent = pc.getSenders().some((s) => s.track === track);
         if (!alreadySent) {
-          if (!outgoingStream) {
+          if (!localStream) {
             console.error("stream is undefined");
             return;
           }
-          pc.addTrack(track, outgoingStream);
+          pc.addTrack(track, localStream);
         }
       });
 
@@ -358,20 +358,20 @@
   </header>
   <Calls
     {onVideoRef}
-    {outgoingVideoPlaying}
-    {incomingVideoPlaying}
-    {incomingAudioPlaying}
+    {localVideoPlaying}
+    {remoteVideoPlaying}
+    {remoteAudioPlaying}
     {connected}
     {peerName}
   />
   <MediaControl
-    bind:outgoingStream
-    bind:outgoingVideoPlaying
+    bind:localStream
+    bind:localVideoPlaying
     {audioInputDevices}
     {audioOutputDevices}
     {videoInputDevices}
-    {outgoingVideo}
-    {incomingVideo}
+    {localVideoElement}
+    {remoteVideoElement}
     {selectedAudioInput}
     {selectedVideoInput}
     {pc}
