@@ -1,7 +1,15 @@
 <script lang="ts">
     import { onMount } from "svelte";
 
-    let { joinRoom, onFormSubmit, onDialogRef } = $props();
+    let {
+        joinRoom,
+        onFormSubmit,
+        onDialogRef,
+    }: {
+        joinRoom: () => void;
+        onFormSubmit: (roomname: string, username: string) => void;
+        onDialogRef: (el: HTMLDialogElement) => void;
+    } = $props();
     let roomName = $state("");
     let userName = $state("");
     let dialogRef: HTMLDialogElement | undefined = $state();
