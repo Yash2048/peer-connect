@@ -187,7 +187,7 @@
     align-items: center;
     gap: 0.7rem;
     background-color: var(--surface);
-    border: 1px s + olid var(--border);
+    border: 1px solid var(--border);
     border-radius: 1.6rem;
     position: absolute;
     bottom: min(1rem, 5%);
