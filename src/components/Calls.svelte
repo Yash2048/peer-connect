@@ -3,6 +3,7 @@
   import "../app.css";
   let {
     localVideoPlaying,
+    localAudioPlaying,
     remoteVideoPlaying,
     remoteAudioPlaying,
     connected,
@@ -10,6 +11,7 @@
     onVideoRef,
   }: {
     localVideoPlaying: boolean;
+    localAudioPlaying: boolean;
     remoteVideoPlaying: boolean;
     remoteAudioPlaying: boolean;
     connected: boolean;
@@ -40,7 +42,7 @@
     <div class="overlay">
       <div class="name">
         <div class="icon">
-          {#if false}
+          {#if localAudioPlaying}
             <IconMSMicOutline height="24px" width="24px" />
           {:else}
             <IconMSMicOffOutline height="24px" width="24px" />

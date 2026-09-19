@@ -8,6 +8,7 @@
 
   // State
   let localVideoPlaying = $state(true);
+  let localAudioPlaying = $state(true);
   let remoteVideoPlaying = $state(false);
   let remoteAudioPlaying = $state(false);
   // video elements for remote and local streams
@@ -215,7 +216,7 @@
     pc.onnegotiationneeded = handleNegotiationNeededEvent;
   };
 
-  // handlers
+  // event handlers
   const handleRemoveTrackEvent = (e: MediaStreamTrackEvent) => {
     console.info("handleRemoveTrackEvent fired!");
     console.group("Track Removed");
@@ -297,7 +298,6 @@
     }
   };
 
-  // events
   // svelte-ignore state_referenced_locally
   if (pc) {
     Object.assign(pc, {
@@ -404,6 +404,7 @@
   <Calls
     {onVideoRef}
     {localVideoPlaying}
+    {localAudioPlaying}
     {remoteVideoPlaying}
     {remoteAudioPlaying}
     {connected}
@@ -412,6 +413,7 @@
   <MediaControl
     bind:localStream
     bind:localVideoPlaying
+    bind:localAudioPlaying
     {audioInputDevices}
     {audioOutputDevices}
     {videoInputDevices}

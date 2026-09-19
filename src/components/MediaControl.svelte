@@ -2,6 +2,7 @@
   import "../app.css";
   let {
     localVideoPlaying = $bindable(),
+    localAudioPlaying = $bindable(),
     localStream = $bindable(),
     localVideoElement,
     remoteVideoElement,
@@ -15,6 +16,7 @@
     endCall,
   }: {
     localVideoPlaying: boolean;
+    localAudioPlaying: boolean;
     localStream: MediaStream | null;
     localVideoElement: HTMLVideoElement | undefined;
     remoteVideoElement: HTMLVideoElement | undefined;
@@ -27,8 +29,6 @@
     deviceConstraints: Record<string, MediaStreamConstraints>;
     endCall: () => void;
   } = $props();
-
-  let localAudioPlaying = $state(true);
 
   const toggleVideo = async () => {
     console.info("toggleFeed fired!");
