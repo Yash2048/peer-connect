@@ -142,11 +142,11 @@
     }
   };
   const endCall = () => {
+    socket.emit("leave", roomName);
     closeConnection();
     roomName = "";
     userName = "";
     connectionState = "NA";
-    socket.emit("leave");
     if (dialogRef) dialogRef.showModal();
   };
 

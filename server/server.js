@@ -13,22 +13,21 @@ const generateRoomName = () => {
 
 
 io.on('connection', (socket) => {
-  let users = 0;
   socket.on('join', (room) => {
-    users++;
-    console.group(`User #${users}`)
-    console.log('New User Joined')
-    console.log("Room name: ", room)
-    console.groupEnd(`User #${users}`)
     if (room == "") {
       room = generateRoomName();
     }
 
+    console.log('User joined room: ', room)
     const clientsInRoom = io.sockets.adapter.rooms.get(room)?.size ?? 0;
     socket.join(room);
     socket.emit('joined', room, { isInitiator: clientsInRoom === 0 })
   });
 
+  socket.on('leave', (room) => {
+    socket.leave(room);
+    console.log('User left room: ', room)
+  })
 
   // Relay offer, answer, ice-candidate to everyone else in the room
   socket.on('signal', ({ room, username, data }) => {
@@ -37,7 +36,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    users--;
     // socket.io auto-removes from rooms on disconnect
     console.log('User Disconnected')
   });
