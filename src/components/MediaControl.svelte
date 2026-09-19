@@ -351,7 +351,7 @@
         name=""
         id=""
       >
-        {#if audioOutputDevices.length === 0 || !audioOutputDevices[0].label}
+        {#if videoInputDevices.length === 0 || !videoInputDevices[0].label}
           <option value="">Permission required</option>
         {:else}
           {#each videoInputDevices as videoInputDevice}
