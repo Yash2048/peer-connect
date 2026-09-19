@@ -10,6 +10,7 @@
     audioOutputDevices,
     videoInputDevices,
     selectedAudioInput,
+    selectedAudioOutput,
     selectedVideoInput,
     pc,
     deviceConstraints,
@@ -25,6 +26,7 @@
     videoInputDevices: MediaDeviceInfo[];
     pc: RTCPeerConnection | null;
     selectedAudioInput: string;
+    selectedAudioOutput: string;
     selectedVideoInput: string;
     deviceConstraints: Record<string, MediaStreamConstraints>;
     endCall: () => void;
@@ -274,26 +276,44 @@
 <section class="options">
   <div class="dropdown audio">
     <div popover id="dropdown-menu-audio" class="dropdown-menu">
+      <!-- TODO: To select the devices first you need to give it permission to it.
+      If you gave it permission, the selected option and the actual device 
+      being used will be the same, but if you didn't, the option will select 
+      that device but the old device will be used.
+      -->
       <MicRoundedIcon height="24px" width="24px" />
       <select
         bind:value={selectedAudioInput}
         onchange={changeAudioInput}
-        name=""
-        id=""
+        name="audio-input"
+        id="audio-input-selector"
       >
-        {#each audioInputDevices as audioInputDevice}
-          <option value={audioInputDevice.deviceId}
-            >{audioInputDevice.label}</option
-          >
-        {/each}
+        {#if audioInputDevices.length === 0 || !audioInputDevices[0].label}
+          <option value="">Permission required</option>
+        {:else}
+          {#each audioInputDevices as audioInputDevice}
+            <option value={audioInputDevice.deviceId}
+              >{audioInputDevice.label}</option
+            >
+          {/each}
+        {/if}
       </select>
       <VolumeUpRoundedIcon height="24px" width="24px" />
-      <select onchange={changeAudioOutput} name="" id="">
-        {#each audioOutputDevices as audioOutputDevice}
-          <option value={audioOutputDevice.deviceId}
-            >{audioOutputDevice.label}</option
-          >
-        {/each}
+      <select
+        bind:value={selectedAudioOutput}
+        onchange={changeAudioOutput}
+        name="audio-output"
+        id="audio-output-selector"
+      >
+        {#if audioOutputDevices.length === 0 || !audioOutputDevices[0].label}
+          <option value="">Permission required</option>
+        {:else}
+          {#each audioOutputDevices as audioOutputDevice}
+            <option value={audioOutputDevice.deviceId}
+              >{audioOutputDevice.label}</option
+            >
+          {/each}
+        {/if}
       </select>
     </div>
     <span class="dropdown-button-container">
@@ -331,11 +351,15 @@
         name=""
         id=""
       >
-        {#each videoInputDevices as videoInputDevice}
-          <option value={videoInputDevice.deviceId}
-            >{videoInputDevice.label}</option
-          >
-        {/each}
+        {#if audioOutputDevices.length === 0 || !audioOutputDevices[0].label}
+          <option value="">Permission required</option>
+        {:else}
+          {#each videoInputDevices as videoInputDevice}
+            <option value={videoInputDevice.deviceId}
+              >{videoInputDevice.label}</option
+            >
+          {/each}
+        {/if}
       </select>
     </div>
     <span class="dropdown-button-container">

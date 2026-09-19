@@ -26,6 +26,7 @@
   // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let selectedAudioInput = $state("");
+  let selectedAudioOutput = $state("");
   let selectedVideoInput = $state("");
 
   let deviceConstraints: Record<string, MediaStreamConstraints> = $state({});
@@ -112,6 +113,8 @@
     audioOutputDevices = devices.filter(
       (device) => device.kind == "audiooutput",
     );
+    selectedAudioOutput = audioOutputDevices[0]?.deviceId ?? "";
+
     videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
   async function toClipboard() {
@@ -420,6 +423,7 @@
     {localVideoElement}
     {remoteVideoElement}
     {selectedAudioInput}
+    {selectedAudioOutput}
     {selectedVideoInput}
     {pc}
     {deviceConstraints}
