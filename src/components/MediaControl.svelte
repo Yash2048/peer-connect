@@ -258,19 +258,23 @@
   let audioDropDownOpen = $state(false);
   let videoDropDownOpen = $state(false);
 
-  import IconMdiCameraOutline from "~icons/mdi/camera-outline";
-  import IconMdiCameraOffOutline from "~icons/mdi/camera-off-outline";
-  import IconMSMicOutline from "~icons/material-symbols/mic-outline";
-  import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
-  import IconMSScreenShare from "~icons/material-symbols/screen-share";
-  import IconMSScreenShareOutline from "~icons/material-symbols/screen-share-outline";
-  import IconMSCallEndOutline from "~icons/material-symbols/call-end-outline";
-  import IconTablerDots from "~icons/tabler/dots";
+  import CameraOutlineIcon from "~icons/mdi/camera-outline";
+  import CameraOffOutlineIcon from "~icons/mdi/camera-off-outline";
+  import MicOutlineIcon from "~icons/material-symbols/mic-outline";
+  import MicOffOutlineIcon from "~icons/material-symbols/mic-off-outline";
+  import ScreenShareIcon from "~icons/material-symbols/screen-share";
+  import ScreenShareOutlineIcon from "~icons/material-symbols/screen-share-outline";
+  import CallEndOutlineIcon from "~icons/material-symbols/call-end-outline";
+  import DotsIcon from "~icons/tabler/dots";
+  import MicRoundedIcon from "~icons/material-symbols/mic-rounded";
+  import VolumeUpRoundedIcon from "~icons/material-symbols/volume-up-rounded";
+  import VideocamRoundedIcon from "~icons/material-symbols/videocam-rounded";
 </script>
 
 <section class="options">
   <div class="dropdown audio">
     <div popover id="dropdown-menu-audio" class="dropdown-menu">
+      <MicRoundedIcon height="24px" width="24px" />
       <select
         bind:value={selectedAudioInput}
         onchange={changeAudioInput}
@@ -283,6 +287,7 @@
           >
         {/each}
       </select>
+      <VolumeUpRoundedIcon height="24px" width="24px" />
       <select onchange={changeAudioOutput} name="" id="">
         {#each audioOutputDevices as audioOutputDevice}
           <option value={audioOutputDevice.deviceId}
@@ -301,7 +306,7 @@
         }}
       >
         <!-- <Icon height="24px" icon="tabler:dots" /> -->
-        <IconTablerDots height="24px" width="24px" />
+        <DotsIcon height="24px" width="24px" />
       </button>
       <button
         aria-label="audio-toggle"
@@ -309,9 +314,9 @@
         onclick={toggleAudio}
       >
         {#if localAudioPlaying}
-          <IconMSMicOutline height="24px" width="24px" />
+          <MicOutlineIcon height="24px" width="24px" />
         {:else}
-          <IconMSMicOffOutline height="24px" width="24px" />
+          <MicOffOutlineIcon height="24px" width="24px" />
         {/if}
       </button>
     </span>
@@ -319,6 +324,7 @@
 
   <div class="dropdown video">
     <div popover id="dropdown-menu-video" class="dropdown-menu">
+      <VideocamRoundedIcon height="24px" width="24px" />
       <select
         bind:value={selectedVideoInput}
         onchange={changeVideoInput}
@@ -341,7 +347,7 @@
           videoDropDownOpen = !videoDropDownOpen;
         }}
       >
-        <IconTablerDots height="24px" width="24px" />
+        <DotsIcon height="24px" width="24px" />
       </button>
       <button
         aria-label="video-toggle"
@@ -349,9 +355,9 @@
         onclick={toggleVideo}
       >
         {#if localVideoPlaying}
-          <IconMdiCameraOutline width="24" height="24" />
+          <CameraOutlineIcon width="24" height="24" />
         {:else}
-          <IconMdiCameraOffOutline width="24" height="24" />
+          <CameraOffOutlineIcon width="24" height="24" />
         {/if}
       </button>
     </span>
@@ -359,14 +365,14 @@
 
   <button aria-label="screen-share-toggle" class="screen-share-toggle">
     {#if false}
-      <IconMSScreenShare height="24px" width="24px" />
+      <ScreenShareIcon height="24px" width="24px" />
     {:else}
-      <IconMSScreenShareOutline height="24px" width="24px" />
+      <ScreenShareOutlineIcon height="24px" width="24px" />
     {/if}
   </button>
 
   <button onclick={endCall} aria-label="call-end-toggle" class="end-call">
-    <IconMSCallEndOutline height="24px" width="24px" />
+    <CallEndOutlineIcon height="24px" width="24px" />
   </button>
 </section>
 
@@ -400,6 +406,7 @@
     }
   }
   .dropdown-menu {
+    align-items: center;
     width: fit-content;
     position: absolute;
     position-area: top span-right;
@@ -410,7 +417,7 @@
     margin: 1rem 0;
     gap: 1rem;
     select {
-      /* min-width: 10rem; */
+      min-width: 5rem;
       min-height: 2rem;
       background-color: var(--bg);
       border-radius: 0.25rem;
