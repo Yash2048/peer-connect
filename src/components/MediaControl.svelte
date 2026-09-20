@@ -472,7 +472,7 @@
   .dropdown-button-container button:first-child {
     --btn-clr: var(--btn-bg);
     &:focus-visible {
-      box-shadow: inset 0 0 2rem -1rem black;
+      box-shadow: inset 0 0 2rem -1.5rem white;
     }
   }
 </style>
