@@ -472,6 +472,10 @@
         &:hover {
           --icon-clr: hsl(from var(--accent) h s calc(l + 10));
         }
+        &:focus-visible {
+          outline: auto;
+          box-shadow: none;
+        }
       }
       gap: 0.75rem;
       span:last-child {
