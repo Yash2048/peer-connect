@@ -147,6 +147,7 @@
       return;
     }
     const deviceId = (e.target as HTMLSelectElement).value;
+    selectedAudioInput = deviceId;
 
     const audioConstraints: MediaStreamConstraints = {
       audio: { deviceId: { exact: deviceId } },
@@ -177,6 +178,7 @@
   const changeAudioOutput = async (e: Event) => {
     console.info("changeAudioOutput fired!");
     const deviceId = (e.target as HTMLSelectElement).value;
+    selectedAudioOutput = deviceId;
     if (!remoteVideoElement) {
       console.error("remoteVideoElement doesn't exist");
       return;
@@ -199,7 +201,7 @@
       return;
     }
     const deviceId = (e.target as HTMLSelectElement).value;
-
+    selectedVideoInput = deviceId;
     const videoConstraints: MediaStreamConstraints = {
       video: { deviceId: { exact: deviceId } },
     };
@@ -273,6 +275,28 @@
   import VideocamRoundedIcon from "~icons/material-symbols/videocam-rounded";
 </script>
 
+{#snippet io(
+  selectedValue: string,
+  devices: MediaDeviceInfo[],
+  changeHandler: (e: Event) => Promise<void>,
+  name: string,
+)}
+  <select
+    value={selectedValue}
+    onchange={changeHandler}
+    {name}
+    id="{name}-selector"
+  >
+    {#if devices.length === 0 || !devices[0].label}
+      <option value="">Permission required</option>
+    {:else}
+      {#each devices as device}
+        <option value={device.deviceId}>{device.label}</option>
+      {/each}
+    {/if}
+  </select>
+{/snippet}
+
 <section class="options">
   <div class="dropdown audio">
     <div popover id="dropdown-menu-audio" class="dropdown-menu">
@@ -281,40 +305,21 @@
       being used will be the same, but if you didn't, the option will select 
       that device but the old device will be used.
       -->
+
       <MicRoundedIcon height="24px" width="24px" />
-      <select
-        bind:value={selectedAudioInput}
-        onchange={changeAudioInput}
-        name="audio-input"
-        id="audio-input-selector"
-      >
-        {#if audioInputDevices.length === 0 || !audioInputDevices[0].label}
-          <option value="">Permission required</option>
-        {:else}
-          {#each audioInputDevices as audioInputDevice}
-            <option value={audioInputDevice.deviceId}
-              >{audioInputDevice.label}</option
-            >
-          {/each}
-        {/if}
-      </select>
+      {@render io(
+        selectedAudioInput,
+        audioInputDevices,
+        changeAudioInput,
+        "audio-input",
+      )}
       <VolumeUpRoundedIcon height="24px" width="24px" />
-      <select
-        bind:value={selectedAudioOutput}
-        onchange={changeAudioOutput}
-        name="audio-output"
-        id="audio-output-selector"
-      >
-        {#if audioOutputDevices.length === 0 || !audioOutputDevices[0].label}
-          <option value="">Permission required</option>
-        {:else}
-          {#each audioOutputDevices as audioOutputDevice}
-            <option value={audioOutputDevice.deviceId}
-              >{audioOutputDevice.label}</option
-            >
-          {/each}
-        {/if}
-      </select>
+      {@render io(
+        selectedAudioOutput,
+        audioOutputDevices,
+        changeAudioOutput,
+        "audio-output",
+      )}
     </div>
     <span class="dropdown-button-container">
       <button
@@ -345,22 +350,12 @@
   <div class="dropdown video">
     <div popover id="dropdown-menu-video" class="dropdown-menu">
       <VideocamRoundedIcon height="24px" width="24px" />
-      <select
-        bind:value={selectedVideoInput}
-        onchange={changeVideoInput}
-        name=""
-        id=""
-      >
-        {#if videoInputDevices.length === 0 || !videoInputDevices[0].label}
-          <option value="">Permission required</option>
-        {:else}
-          {#each videoInputDevices as videoInputDevice}
-            <option value={videoInputDevice.deviceId}
-              >{videoInputDevice.label}</option
-            >
-          {/each}
-        {/if}
-      </select>
+      {@render io(
+        selectedVideoInput,
+        videoInputDevices,
+        changeVideoInput,
+        "audio-input",
+      )}
     </div>
     <span class="dropdown-button-container">
       <button
