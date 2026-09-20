@@ -1,22 +1,15 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-
     let {
         joinRoom,
         onFormSubmit,
-        onDialogRef,
+        dialogRef = $bindable(),
     }: {
         joinRoom: () => void;
         onFormSubmit: (roomname: string, username: string) => void;
-        onDialogRef: (el: HTMLDialogElement) => void;
+        dialogRef: HTMLDialogElement | undefined;
     } = $props();
     let roomName = $state("");
     let userName = $state("");
-    let dialogRef: HTMLDialogElement | undefined = $state();
-
-    onMount(() => {
-        if (dialogRef) onDialogRef(dialogRef);
-    });
 </script>
 
 <dialog bind:this={dialogRef}>

@@ -155,13 +155,6 @@
     roomName = roomname;
     userName = username;
   };
-  const onDialogRef = (dr: HTMLDialogElement) => {
-    dialogRef = dr;
-  };
-  const onVideoRef = (rv: HTMLVideoElement, lv: HTMLVideoElement) => {
-    remoteVideoElement = rv;
-    localVideoElement = lv;
-  };
 
   // WebRTC code
   const socket = io(import.meta.env.VITE_SIGNALING_SERVER_URL, {
@@ -394,7 +387,7 @@
   });
 </script>
 
-<Dialog {joinRoom} {onFormSubmit} {onDialogRef} />
+<Dialog {joinRoom} {onFormSubmit} bind:dialogRef />
 <main>
   <header class="user-info">
     <span>
@@ -405,7 +398,8 @@
     <span><span>Username</span> <span>{userName ? userName : "NA"}</span></span>
   </header>
   <Calls
-    {onVideoRef}
+    bind:localVideoElement
+    bind:remoteVideoElement
     {localVideoPlaying}
     {localAudioPlaying}
     {remoteVideoPlaying}

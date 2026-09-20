@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import "../app.css";
   let {
     localVideoPlaying,
@@ -8,7 +7,8 @@
     remoteAudioPlaying,
     connected,
     peerName,
-    onVideoRef,
+    localVideoElement: lv = $bindable(),
+    remoteVideoElement: rv = $bindable(),
   }: {
     localVideoPlaying: boolean;
     localAudioPlaying: boolean;
@@ -16,10 +16,9 @@
     remoteAudioPlaying: boolean;
     connected: boolean;
     peerName: string;
-    onVideoRef: (rv: HTMLVideoElement, lv: HTMLVideoElement) => void;
+    localVideoElement: HTMLVideoElement | undefined;
+    remoteVideoElement: HTMLVideoElement | undefined;
   } = $props();
-  let rv: HTMLVideoElement | undefined = $state();
-  let lv: HTMLVideoElement | undefined = $state();
   import IconMSMicOutline from "~icons/material-symbols/mic-outline";
   import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
 
@@ -28,17 +27,10 @@
       ? peerName.split(" ")[0][0] + peerName.split(" ")[1][0]
       : peerName[0],
   );
-
-  onMount(() => {
-    if (rv && lv) onVideoRef(rv, lv);
-  });
 </script>
 
 <section class="feed">
-  <div
-    class="local-video-container video-container"
-    class:minimize={connected}
-  >
+  <div class="local-video-container video-container" class:minimize={connected}>
     <div class="overlay">
       <div class="name">
         <div class="icon">
@@ -64,10 +56,7 @@
       tabindex="-1"
     ></video>
   </div>
-  <div
-    class:hidden={!connected}
-    class="remote-video-container video-container"
-  >
+  <div class:hidden={!connected} class="remote-video-container video-container">
     <div class="overlay">
       <div class="name">
         <div class="icon">
