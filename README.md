@@ -1,6 +1,26 @@
 # Peer Connect
 A WebRTC client for video calling.
 
+## Images
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset=".github/assets/images/screenshot-1.webp"></source>
+<source media="(prefers-color-scheme: light)" srcset=".github/assets/images/screenshot-1-light.webp"></source>
+<img  alt src=".github/assets/images/screenshot-1.webp">
+</picture>
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset=".github/assets/images/screenshot-2.webp"></source>
+<source media="(prefers-color-scheme: light)" srcset=".github/assets/images/screenshot-2-light.webp"></source>
+<img  alt src=".github/assets/images/screenshot-2.webp">
+</picture>
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset=".github/assets/images/screenshot-3.webp"></source>
+<source media="(prefers-color-scheme: light)" srcset=".github/assets/images/screenshot-3-light.webp"></source>
+<img  alt src=".github/assets/images/screenshot-3.webp">
+</picture>
+
 ## Setup
 
 ### Client
@@ -20,4 +40,14 @@ pnpm install
 pnpm start
 ```
 
-Expose the port and use the url inside `.env` file's `VITE_SIGNALING_SERVER_URL` field.
+Expose the server port and put the url inside `.env` file's `VITE_SIGNALING_SERVER_URL` field.
+
+## TODO
+- [ ] Make mini-player draggable
+- [ ] Isolate webrtc logic
+- [ ] Add routes 
+- [ ] Add screen share logic
+- [ ] Add group chat
+- [ ] Room creator should be able to accept and reject join requests
+- [ ] Push to speak
+- [ ] Alerts for errors, warning and general info
