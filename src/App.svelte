@@ -5,6 +5,7 @@
   import MediaControl from "./components/MediaControl.svelte";
   import Calls from "./components/Calls.svelte";
   import Dialog from "./components/Dialog.svelte";
+  import { WebRTCConnection, type SignalMessage } from "./lib/webrtc.svelte";
 
   // State
   let localVideoPlaying = $state(true);
@@ -20,10 +21,7 @@
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
   // The stream. Client's stream
   let localStream: MediaStream | null = $state(null);
-  let remoteStream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
-  let connectionState: RTCPeerConnectionState | "NA" = $state("NA");
-  // default constraints
   // for deciding the tracks and their configurations that the stream would have
   let selectedAudioInput = $state("");
   let selectedAudioOutput = $state("");
@@ -33,8 +31,6 @@
   let roomName = $state("");
   let userName = $state("");
   let peerName = $state("");
-  let makingOffer = false;
-  let isInitiator = false;
 
   // gets permissions for IO at mount time
   const getPermissions = async () => {
@@ -117,36 +113,16 @@
 
     videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
+
   async function toClipboard() {
     await navigator.clipboard.writeText(roomName);
   }
 
-  const closeConnection = () => {
-    if (pc) {
-      pc.onicecandidate = null;
-      pc.ontrack = null;
-      pc.onconnectionstatechange = null;
-      pc.onnegotiationneeded = null;
-
-      remoteStream?.getTracks().forEach((track) => track.stop());
-      remoteStream = null;
-      if (remoteVideoElement) remoteVideoElement.srcObject = null;
-      remoteAudioPlaying = false;
-      remoteVideoPlaying = false;
-      connected = false;
-      makingOffer = false;
-      peerName = "";
-
-      pc.close();
-      pc = null;
-    }
-  };
   const endCall = () => {
     socket.emit("leave", roomName);
-    closeConnection();
+    rtc.close();
     roomName = "";
     userName = "";
-    connectionState = "NA";
     if (dialogRef) dialogRef.showModal();
   };
 
@@ -156,228 +132,66 @@
     userName = username;
   };
 
-  // WebRTC code
+  // socket.io
   const socket = io(import.meta.env.VITE_SIGNALING_SERVER_URL, {
     transports: ["websocket", "polling"],
     upgrade: true,
   });
 
-  type SignalMessage =
-    | { type: "offer"; offer: RTCSessionDescriptionInit }
-    | { type: "answer"; answer: RTCSessionDescriptionInit }
-    | { type: "ice-candidate"; candidate: RTCIceCandidateInit };
+  // webrtc connection
+  const rtc = new WebRTCConnection({
+    onSignal: (data) => {
+      socket.emit("signal", { room: roomName, username: userName, data });
+    },
+    onRemoteTrack: (stream, kind) => {
+      if (kind === "video") remoteVideoPlaying = true;
+      if (kind === "audio") remoteAudioPlaying = true;
+      if (remoteVideoElement && !remoteVideoElement.srcObject)
+        remoteVideoElement.srcObject = stream;
+    },
+    onRemoteTrackRemoved: (kind, stream) => {
+      if (kind === "video") {
+        remoteVideoPlaying = false;
+        if (remoteVideoElement) remoteVideoElement.srcObject = stream;
+      }
+      if (kind === "audio") remoteAudioPlaying = false;
+    },
+    onConnectionStateChange: () => {},
+    onConnected: () => {
+      connected = true;
+    },
+    onClosed: () => {
+      remoteAudioPlaying = false;
+      remoteVideoPlaying = false;
+      connected = false;
+      peerName = "";
+      if (remoteVideoElement) remoteVideoElement.srcObject = null;
+    },
+  });
 
-  let rtcConfig: RTCConfiguration = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-  };
-  let pc: RTCPeerConnection | null = $state(new RTCPeerConnection(rtcConfig));
+  const connectionState = $derived(rtc.connectionState);
 
-  let pendingCandidates: RTCIceCandidateInit[] = [];
-  let remoteDescSet = false;
-  let ignoreOffer = false;
-  const polite = $derived(!isInitiator); // one peer must be polite, the other impolite
-
-  // functions
   const joinRoom = () => {
     socket.emit("join", roomName, userName);
   };
 
   const startCall = async () => {
-    if (!pc) {
-      initPeerConnection();
-    }
     console.info("startCall fired!");
-    if (localStream)
-      localStream.getTracks().forEach((track) => {
-        if (localStream && pc) pc.addTrack(track, localStream);
-      });
-    else {
-      console.error("stream is undefined");
-    }
-
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit("signal", {
-      room: roomName,
-      username: userName,
-      data: { type: "offer", offer },
-    });
+    if (localStream) await rtc.startCall(localStream);
+    else console.error("stream is undefined");
   };
 
-  const initPeerConnection = () => {
-    pc = new RTCPeerConnection(rtcConfig);
-    pc.onicecandidate = handleICECandidateEvent;
-    pc.ontrack = handleTrackEvent;
-    pc.onconnectionstatechange = handleConnectionStateChangeEvent;
-    pc.onnegotiationneeded = handleNegotiationNeededEvent;
-  };
-
-  // event handlers
-  const handleRemoveTrackEvent = (e: MediaStreamTrackEvent) => {
-    console.info("handleRemoveTrackEvent fired!");
-    console.group("Track Removed");
-    console.log(`Track kind: ${e.track.kind}`);
-    console.log(`Track id: ${e.track.id}`);
-    console.groupEnd();
-    console.log(e.track);
-    if (e.track.kind === "video") {
-      remoteVideoPlaying = false;
-      if (remoteVideoElement) remoteVideoElement.srcObject = remoteStream;
-    }
-    if (e.track.kind === "audio") remoteAudioPlaying = false;
-  };
-  const handleICECandidateEvent = (e: RTCPeerConnectionIceEvent) => {
-    if (e.candidate) {
-      socket.emit("signal", {
-        room: roomName,
-        username: userName,
-        data: { type: "ice-candidate", candidate: e.candidate.toJSON() },
-      });
-    }
-  };
-  const handleTrackEvent = (trackEv: RTCTrackEvent) => {
-    console.info("handleTrackEvent fired!");
-
-    console.group("Track Added");
-    console.log(`Track kind: ${trackEv.track.kind}`);
-    console.log(`Track id: ${trackEv.track.id}`);
-    console.groupEnd();
-    if (!remoteStream) remoteStream = trackEv.streams[0];
-    if (trackEv.track.kind == "video") remoteVideoPlaying = true;
-    if (trackEv.track.kind == "audio") remoteAudioPlaying = true;
-
-    if (remoteVideoElement && !remoteVideoElement.srcObject)
-      remoteVideoElement.srcObject = remoteStream;
-
-    remoteStream.onremovetrack = handleRemoveTrackEvent;
-  };
-  const handleNegotiationNeededEvent = async () => {
-    try {
-      makingOffer = true;
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      const message: SignalMessage = { type: "offer", offer };
-      socket.emit("signal", {
-        room: roomName,
-        username: userName,
-        data: message,
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      makingOffer = false;
-    }
-  };
-  const handleConnectionStateChangeEvent = (e: Event) => {
-    connectionState = pc.connectionState;
-    switch (connectionState) {
-      case "connected":
-        connected = true;
-        break;
-      case "failed":
-        // pc.setConfiguration(rtcConfig);
-        pc.restartIce();
-        break;
-      case "disconnected":
-      // connected = false;
-      // if (remoteVideoElement) remoteVideoElement.srcObject = null;
-      // break;
-      case "closed":
-        closeConnection();
-        break;
-      case "connecting":
-        break;
-      case "new":
-        break;
-      default:
-        break;
-    }
-  };
-
-  // svelte-ignore state_referenced_locally
-  if (pc) {
-    Object.assign(pc, {
-      // this is the first time I've seen this. #AI gen
-      onicecandidate: handleICECandidateEvent,
-      ontrack: handleTrackEvent,
-      onconnectionstatechange: handleConnectionStateChangeEvent,
-      onnegotiationneeded: handleNegotiationNeededEvent,
-    });
-  }
-  //socket
   socket.on("joined", async (roomname, { isInitiator }) => {
     roomName = roomname;
-    isInitiator = isInitiator;
-    if (isInitiator) {
-    } else {
-      startCall();
-    }
+    rtc.setInitiator(isInitiator);
+    if (!isInitiator) startCall();
   });
+
   socket.on("signal", async (peername: string, msg: SignalMessage) => {
-    if (pc === null) {
-      initPeerConnection();
-    }
-    if (msg.type === "offer") {
-      const offerCollision = makingOffer || pc.signalingState !== "stable";
-
-      ignoreOffer = !polite && offerCollision;
-      if (ignoreOffer) return;
-
-      if (offerCollision) {
-        await pc.setLocalDescription({ type: "rollback" });
-      }
-
-      if (!localStream) {
-        console.error("stream is undefined");
-        return;
-      }
-
-      localStream.getTracks().forEach((track) => {
-        const alreadySent = pc.getSenders().some((s) => s.track === track);
-        if (!alreadySent) {
-          if (!localStream) {
-            console.error("stream is undefined");
-            return;
-          }
-          pc.addTrack(track, localStream);
-        }
-      });
-
-      await pc.setRemoteDescription(msg.offer);
-      remoteDescSet = true;
-      for (const c of pendingCandidates) await pc.addIceCandidate(c);
-      pendingCandidates = [];
-
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit("signal", {
-        room: roomName,
-        username: userName,
-        data: { type: "answer", answer: pc.localDescription },
-      });
-      peerName = peername;
-    } else if (msg.type === "answer") {
-      await pc.setRemoteDescription(msg.answer);
-      remoteDescSet = true;
-      for (const c of pendingCandidates) await pc.addIceCandidate(c);
-      pendingCandidates = [];
-
-      peerName = peername;
-    } else if (msg.type === "ice-candidate") {
-      try {
-        if (remoteDescSet) {
-          await pc.addIceCandidate(msg.candidate);
-        } else {
-          pendingCandidates.push(msg.candidate);
-        }
-      } catch (err) {
-        if (!ignoreOffer) throw err;
-      }
-    }
+    await rtc.handleSignal(msg, localStream);
+    peerName = peername;
   });
 
-  // Handle incoming signals
   let dialogRef: HTMLDialogElement | undefined = $state();
 
   onMount(async () => {
@@ -386,7 +200,6 @@
     await getDevices();
   });
 </script>
-
 <Dialog {joinRoom} {onFormSubmit} bind:dialogRef />
 <main>
   <header class="user-info">
@@ -419,7 +232,7 @@
     {selectedAudioInput}
     {selectedAudioOutput}
     {selectedVideoInput}
-    {pc}
+    pc={rtc.pc}
     {deviceConstraints}
     {endCall}
   />
