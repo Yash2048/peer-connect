@@ -128,12 +128,14 @@
 
   const changeAudioInput = async (e: Event) => {
     console.info("changeAudioInput fired!");
+    const el = e.target as HTMLSelectElement;
+    const deviceId = el.value;
+
     if (!localAudioPlaying) {
       console.warn("Can't change Audio Input while muted.");
+      el.value = selectedAudioInput;
       return;
     }
-    const deviceId = (e.target as HTMLSelectElement).value;
-    selectedAudioInput = deviceId;
 
     const audioConstraints: MediaStreamConstraints = {
       audio: { deviceId: { exact: deviceId } },
@@ -153,8 +155,10 @@
         localStream.addTrack(audioTrack);
       }
       await rtc.replaceTrack("audio", audioTrack);
+      selectedAudioInput = deviceId;
     } catch (error) {
       console.error(error);
+      el.value = selectedAudioInput;
     }
   };
   const changeAudioOutput = async (e: Event) => {
@@ -178,21 +182,23 @@
   };
   const changeVideoInput = async (e: Event) => {
     console.info("changeVideoInput fired!");
+    const el = e.target as HTMLSelectElement;
+    const deviceId = el.value;
+
     if (!localVideoPlaying) {
       console.warn("Can't change Video Input while video is off.");
+      el.value = selectedVideoInput;
       return;
     }
-    const deviceId = (e.target as HTMLSelectElement).value;
-    selectedVideoInput = deviceId;
     const videoConstraints: MediaStreamConstraints = {
       video: { deviceId: { exact: deviceId } },
     };
 
     try {
       let newStream;
-      if (deviceConstraints[selectedVideoInput])
+      if (deviceConstraints[deviceId])
         newStream = await navigator.mediaDevices.getUserMedia(
-          deviceConstraints[selectedVideoInput],
+          deviceConstraints[deviceId],
         );
       else {
         newStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
@@ -211,9 +217,9 @@
           };
         }
         newStream.getTracks().forEach((track) => track.stop());
-        if (deviceConstraints[selectedVideoInput])
+        if (deviceConstraints[deviceId])
           newStream = await navigator.mediaDevices.getUserMedia(
-            deviceConstraints[selectedVideoInput],
+            deviceConstraints[deviceId],
           );
       }
       const newVideoTrack = newStream.getVideoTracks()[0];
@@ -234,8 +240,11 @@
 
       if (localVideoElement && localStream)
         localVideoElement.srcObject = localStream;
+
+      selectedVideoInput = deviceId;
     } catch (error) {
       console.error(error);
+      el.value = selectedVideoInput;
     }
   };
   let audioDropDownOpen = $state(false);
@@ -279,12 +288,6 @@
 <section class="options">
   <div class="dropdown audio">
     <div popover id="dropdown-menu-audio" class="dropdown-menu">
-      <!-- TODO: To select the devices first you need to give it permission to it.
-      If you gave it permission, the selected option and the actual device 
-      being used will be the same, but if you didn't, the option will select 
-      that device but the old device will be used.
-      -->
-
       <MicRoundedIcon height="24px" width="24px" />
       {@render io(
         selectedAudioInput,
