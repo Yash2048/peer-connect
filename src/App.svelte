@@ -232,7 +232,7 @@
     {selectedAudioInput}
     {selectedAudioOutput}
     {selectedVideoInput}
-    pc={rtc.pc}
+    {rtc}
     {deviceConstraints}
     {endCall}
   />

@@ -1,5 +1,6 @@
 <script lang="ts">
   import "../app.css";
+  import { WebRTCConnection } from "../lib/webrtc.svelte";
   let {
     localVideoPlaying = $bindable(),
     localAudioPlaying = $bindable(),
@@ -12,7 +13,7 @@
     selectedAudioInput,
     selectedAudioOutput,
     selectedVideoInput,
-    pc,
+    rtc,
     deviceConstraints,
     endCall,
   }: {
@@ -24,7 +25,7 @@
     audioInputDevices: MediaDeviceInfo[];
     audioOutputDevices: MediaDeviceInfo[];
     videoInputDevices: MediaDeviceInfo[];
-    pc: RTCPeerConnection | null;
+    rtc: WebRTCConnection;
     selectedAudioInput: string;
     selectedAudioOutput: string;
     selectedVideoInput: string;
@@ -38,23 +39,16 @@
     if (localVideoPlaying) {
       const videoTracks = localStream?.getVideoTracks();
 
-      if (pc) {
-        const senders = pc.getSenders();
-        videoTracks?.forEach((track) => {
-          senders.forEach((sender) => {
-            if (sender.track === track) {
-              pc.removeTrack(sender);
-            }
-          });
-          track.stop();
-          if (localStream) localStream.removeTrack(track);
+      const senders = rtc.getSenders();
+      videoTracks?.forEach((track) => {
+        senders.forEach((sender) => {
+          if (sender.track === track) {
+            rtc.removeTrack(sender);
+          }
         });
-      } else {
-        videoTracks?.forEach((track) => {
-          track.stop();
-          if (localStream) localStream.removeTrack(track);
-        });
-      }
+        track.stop();
+        if (localStream) localStream.removeTrack(track);
+      });
 
       if (!localVideoElement) {
         console.error("localVideoElement is undefined.");
@@ -85,7 +79,7 @@
           localStream.addTrack(videoTrack);
         }
 
-        if (pc) pc.addTrack(videoTrack, localStream);
+        rtc.addTrack(videoTrack, localStream);
         // localVideoElement.srcObject = stream;
         localVideoPlaying = true;
       } catch (error) {
@@ -98,24 +92,17 @@
     console.info("toggleAudio fired!");
     if (localAudioPlaying) {
       const audioTracks = localStream?.getAudioTracks();
+      const senders = rtc.getSenders();
+      audioTracks?.forEach((track) => {
+        senders.forEach((sender) => {
+          if (sender.track === track) {
+            rtc.removeTrack(sender);
+          }
+        });
+        track.stop();
+        if (localStream) localStream.removeTrack(track);
+      });
 
-      if (pc) {
-        const senders = pc.getSenders();
-        audioTracks?.forEach((track) => {
-          senders.forEach((sender) => {
-            if (sender.track === track) {
-              pc.removeTrack(sender);
-            }
-          });
-          track.stop();
-          if (localStream) localStream.removeTrack(track);
-        });
-      } else {
-        audioTracks?.forEach((track) => {
-          track.stop();
-          if (localStream) localStream.removeTrack(track);
-        });
-      }
       localAudioPlaying = false;
     } else {
       try {
@@ -130,12 +117,11 @@
         } else {
           localStream.addTrack(audioTrack);
         }
-        if (pc) pc.addTrack(audioTrack, localStream);
+        rtc.addTrack(audioTrack, localStream);
 
         localAudioPlaying = true;
       } catch (error) {
         console.error(error);
-        if (localVideoElement) localVideoElement.srcObject = localStream;
       }
     }
   };
@@ -166,11 +152,7 @@
         localStream.removeTrack(oldAudioTrack);
         localStream.addTrack(audioTrack);
       }
-      if (pc) {
-        const sender = pc.getSenders().find((s) => s.track?.kind === "audio");
-        await sender?.replaceTrack(audioTrack);
-      }
-      // if (localVideoElement && stream) localVideoElement.srcObject = stream;
+      await rtc.replaceTrack("audio", audioTrack);
     } catch (error) {
       console.error(error);
     }
@@ -248,10 +230,7 @@
         localStream.addTrack(newVideoTrack);
       }
 
-      if (pc) {
-        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-        await sender?.replaceTrack(newVideoTrack);
-      }
+      await rtc.replaceTrack("video", newVideoTrack);
 
       if (localVideoElement && localStream)
         localVideoElement.srcObject = localStream;
