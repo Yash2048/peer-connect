@@ -30,7 +30,10 @@
 </script>
 
 <section class="feed">
-  <div class="local-video-container video-container" class:minimize={connected}>
+  <div
+    class={["local-video-container", "video-container"]}
+    class:minimize={connected}
+  >
     <div class="overlay">
       <div class="name">
         <div class="icon">
@@ -56,7 +59,10 @@
       tabindex="-1"
     ></video>
   </div>
-  <div class:hidden={!connected} class="remote-video-container video-container">
+  <div
+    class:hidden={!connected}
+    class={["remote-video-container", "video-container"]}
+  >
     <div class="overlay">
       <div class="name">
         <div class="icon">
@@ -87,16 +93,15 @@
 
 <style>
   .feed {
-    flex-direction: column;
-    flex-grow: 1;
-    width: 100%;
+    position: relative;
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
     justify-content: center;
-    min-height: 0;
+    width: 100%;
     min-width: 0;
-    position: relative;
-    /* border: 1px solid saddlebrown; */
+    min-height: 0;
+
     &:has(video.play) {
       align-items: center;
     }
@@ -104,15 +109,17 @@
 
   .video-container {
     position: relative;
-    border-radius: 0.75rem;
-    overflow: clip;
-    min-height: 0;
     min-width: 0;
+    min-height: 0;
     max-width: 100%;
     max-height: 100%;
+    border-radius: 0.75rem;
+    overflow: clip;
+
     &:has(.playOff) {
       flex: 1;
     }
+
     &:has(.play) {
       flex: 0 0 auto;
       width: fit-content;
@@ -121,99 +128,103 @@
   }
 
   .remote-video-container {
-    /* outline:  1rem blue solid; */
     width: 100%;
-  }
-  video {
-    max-width: 100%;
-    max-height: 100%;
-  }
-
-  .remote-video-container {
     background-color: antiquewhite;
   }
+
   .local-video-container {
     background-color: var(--muted);
+
     video {
-      z-index: 0;
       scale: -1 1;
       border-radius: 0.75rem;
     }
   }
 
+  video {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
   .minimize {
-    z-index: 1;
     position: absolute;
-    bottom: 0.1rem;
     right: 0.1rem;
+    bottom: 0.1rem;
+    z-index: 1;
+
     video {
       width: min(16rem, 40vw);
     }
   }
+
   .hidden {
     display: none;
   }
 
   .overlay {
-    z-index: 1;
+    position: absolute;
     top: 0;
+    z-index: 1;
     width: 100%;
     height: 100%;
-    position: absolute;
-    &:hover {
-      .name {
-        max-width: 100%;
-      }
-    }
 
     & > * {
       position: absolute;
     }
+
+    &:hover .name {
+      max-width: 100%;
+    }
   }
+
   .name {
-    height: 2.5rem;
+    bottom: min(1rem, 5%);
+    left: min(1rem, 5%);
     display: flex;
     align-items: center;
     gap: 0.7rem;
+    height: 2.5rem;
+    max-width: 2.5rem;
     background-color: var(--surface);
     border: 1px solid var(--border);
     border-radius: 1.6rem;
-    position: absolute;
-    bottom: min(1rem, 5%);
-    left: min(1rem, 5%);
-    transition: all 1s ease;
-    max-width: 2.5rem;
     overflow: hidden;
+    transition: all 1s ease;
 
     .icon {
-      color: var(--accent);
       display: flex;
       padding: 0.5rem;
+      color: var(--accent);
       background-color: var(--bg);
       border-radius: 50%;
     }
+
     span {
+      padding-right: 1rem;
       text-transform: capitalize;
       text-wrap: nowrap;
       transition: all 5s ease;
-      padding-right: 1rem;
     }
   }
 
   .pfp {
     --pfp-bg: rebeccapurple;
     --pfp-clr: antiquewhite;
-    width: 7rem;
-    height: 7rem;
-    border-radius: 50%;
-    background-color: var(--pfp-bg);
+
     top: 50%;
     left: 50%;
     translate: -50% -50%;
-    color: var(--pfp-clr);
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 7rem;
+    height: 7rem;
+    color: var(--pfp-clr);
+    background-color: var(--pfp-bg);
+    border-radius: 50%;
     font-size: xxx-large;
     text-transform: uppercase;
   }
