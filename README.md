@@ -44,7 +44,7 @@ Expose the server port and put the url inside `.env` file's `VITE_SIGNALING_SERV
 
 ## TODO
 - [ ] Make mini-player draggable
-- [ ] Isolate webrtc logic
+- [x] Isolate webrtc logic
 - [ ] Add routes 
 - [ ] Add screen share logic
 - [ ] Add group chat
