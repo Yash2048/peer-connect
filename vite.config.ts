@@ -5,6 +5,7 @@ import Icons from 'unplugin-icons/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [svelte(), basicSsl(), Icons({autoInstall:true, compiler:'svelte'})],
+  base:"/peer-connect/",
   server: {
     host: true,
   },
