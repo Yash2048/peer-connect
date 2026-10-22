@@ -1,5 +1,9 @@
 # Peer Connect
-A WebRTC client for video calling.
+A WebRTC client for video calling. Try it [here](https://yash2048.github.io/peer-connect/).
+
+> [!IMPORTANT]  
+> Disable adblockers like ublock origin. The signalling server uses a duckdns.org subdomain, which might be on the adblockers' filter list.
+> Till I get a dedicated domain, you have to disable adblocker to connect to other peers. 
 
 ## Images
 
