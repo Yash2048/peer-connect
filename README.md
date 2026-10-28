@@ -55,3 +55,4 @@ Expose the server port and put the url inside `.env` file's `VITE_SIGNALING_SERV
 - [ ] Room creator should be able to accept and reject join requests
 - [ ] Push to speak
 - [x] Alerts for errors, warning and general info
+- [ ] Use data channels for negotiation after connecting
