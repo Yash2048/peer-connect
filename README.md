@@ -54,4 +54,4 @@ Expose the server port and put the url inside `.env` file's `VITE_SIGNALING_SERV
 - [ ] Add group chat
 - [ ] Room creator should be able to accept and reject join requests
 - [ ] Push to speak
-- [ ] Alerts for errors, warning and general info
+- [x] Alerts for errors, warning and general info

@@ -6,6 +6,7 @@
   import Calls from "./components/Calls.svelte";
   import Dialog from "./components/Dialog.svelte";
   import { WebRTCConnection, type SignalMessage } from "./lib/webrtc.svelte";
+  import AlertsOverlay from "./components/AlertsOverlay.svelte";
 
   // State
   let localVideoPlaying = $state(true);
@@ -200,6 +201,8 @@
     await getDevices();
   });
 </script>
+
+<AlertsOverlay />
 <Dialog {joinRoom} {onFormSubmit} bind:dialogRef />
 <main>
   <header class="user-info">
