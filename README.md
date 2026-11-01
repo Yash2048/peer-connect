@@ -47,7 +47,7 @@ pnpm start
 Expose the server port and put the url inside `.env` file's `VITE_SIGNALING_SERVER_URL` field.
 
 ## TODO
-- [ ] Make mini-player draggable
+- [x] Make mini-player draggable
 - [x] Isolate webrtc logic
 - [ ] Add routes 
 - [ ] Add screen share logic
