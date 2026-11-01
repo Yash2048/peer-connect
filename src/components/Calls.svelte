@@ -21,18 +21,24 @@
   } = $props();
   import IconMSMicOutline from "~icons/material-symbols/mic-outline";
   import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
+  import { draggable } from "../lib/draggable";
 
   const initials = $derived(
     peerName.split(" ").length > 1
       ? peerName.split(" ")[0][0] + peerName.split(" ")[1][0]
       : peerName[0],
   );
+  let parent: HTMLElement | null = $state(null);
+  function getParent(node: HTMLElement) {
+    parent = node.parentElement;
+  }
 </script>
 
-<section class="feed">
+<section {@attach getParent} class="feed">
   <div
-    class={["local-video-container", "video-container"]}
+    class={["local-video-container", "video-container", "right", "bottom"]}
     class:minimize={connected}
+    use:draggable={{ bounds: parent, enabled:connected}}
   >
     <div class="overlay">
       <div class="name">
@@ -151,10 +157,21 @@
 
   .minimize {
     position: absolute;
-    right: 0.1rem;
-    bottom: 0.1rem;
-    z-index: 1;
-
+    /* right: 0.1rem; */
+    /* bottom: 0.1rem; */
+    z-index: 10;
+    &:global(.left) {
+      left: 5px;
+    }
+    &:global(.right) {
+      right: 5px;
+    }
+    &:global(.top) {
+      top: 5px;
+    }
+    &:global(.bottom) {
+      bottom: 5px;
+    }
     video {
       width: min(16rem, 40vw);
     }
