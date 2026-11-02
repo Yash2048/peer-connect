@@ -9,8 +9,9 @@
   import AlertsOverlay from "./components/AlertsOverlay.svelte";
 
   // State
-  let localVideoPlaying = $state(true);
-  let localAudioPlaying = $state(true);
+  let localStream: MediaStream | null = $state(null);
+  let localVideoPlaying:boolean = $derived(localStream !== null);
+  let localAudioPlaying:boolean = $derived(localStream !== null);
   let remoteVideoPlaying = $state(false);
   let remoteAudioPlaying = $state(false);
   // video elements for remote and local streams
@@ -21,7 +22,6 @@
   let audioOutputDevices: MediaDeviceInfo[] = $state([]);
   let videoInputDevices: MediaDeviceInfo[] = $state([]);
   // The stream. Client's stream
-  let localStream: MediaStream | null = $state(null);
   let connected: boolean = $state(false);
   // for deciding the tracks and their configurations that the stream would have
   let selectedAudioInput = $state("");
