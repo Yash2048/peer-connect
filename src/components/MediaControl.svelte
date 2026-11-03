@@ -35,17 +35,14 @@
 
   const toggleVideo = async () => {
     console.info("toggleFeed fired!");
-
+    if (!localStream) return;
     if (localVideoPlaying) {
-      const videoTracks = localStream?.getVideoTracks();
+      const videoTracks = localStream.getVideoTracks();
 
       const senders = rtc.getSenders();
-      videoTracks?.forEach((track) => {
-        senders.forEach((sender) => {
-          if (sender.track === track) {
-            rtc.removeTrack(sender);
-          }
-        });
+      videoTracks.forEach((track) => {
+        const sender = senders.find((s) => s.track === track);
+        if (sender) rtc.removeTrack(sender);
         track.stop();
         if (localStream) localStream.removeTrack(track);
       });
@@ -67,7 +64,6 @@
         );
         const videoTrack = videoStream.getVideoTracks()[0];
 
-        console.log(localStream);
         if (!localVideoElement) {
           console.error("localVideoElement is undefined.");
           return;
@@ -91,14 +87,12 @@
   const toggleAudio = async () => {
     console.info("toggleAudio fired!");
     if (localAudioPlaying) {
-      const audioTracks = localStream?.getAudioTracks();
+      if (!localStream) return;
+      const audioTracks = localStream.getAudioTracks();
       const senders = rtc.getSenders();
-      audioTracks?.forEach((track) => {
-        senders.forEach((sender) => {
-          if (sender.track === track) {
-            rtc.removeTrack(sender);
-          }
-        });
+      audioTracks.forEach((track) => {
+        const sender = senders.find((s) => s.track === track);
+        if (sender) rtc.removeTrack(sender);
         track.stop();
         if (localStream) localStream.removeTrack(track);
       });
@@ -312,7 +306,6 @@
           audioDropDownOpen = !audioDropDownOpen;
         }}
       >
-        <!-- <Icon height="24px" icon="tabler:dots" /> -->
         <DotsIcon height="24px" width="24px" />
       </button>
       <button
