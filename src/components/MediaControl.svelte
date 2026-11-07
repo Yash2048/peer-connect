@@ -15,6 +15,7 @@
     selectedVideoInput,
     rtc,
     deviceConstraints,
+    toggleChat,
     endCall,
   }: {
     localVideoPlaying: boolean;
@@ -30,6 +31,7 @@
     selectedAudioOutput: string;
     selectedVideoInput: string;
     deviceConstraints: Record<string, MediaStreamConstraints>;
+    toggleChat:()=> void;
     endCall: () => void;
   } = $props();
 
@@ -255,6 +257,7 @@
   import MicRoundedIcon from "~icons/material-symbols/mic-rounded";
   import VolumeUpRoundedIcon from "~icons/material-symbols/volume-up-rounded";
   import VideocamRoundedIcon from "~icons/material-symbols/videocam-rounded";
+  import ChatIcon from "~icons/material-symbols/chat";
 </script>
 
 {#snippet io(
@@ -280,94 +283,105 @@
 {/snippet}
 
 <section class="options">
-  <div class="dropdown audio">
-    <div popover id="dropdown-menu-audio" class="dropdown-menu">
-      <MicRoundedIcon height="24px" width="24px" />
-      {@render io(
-        selectedAudioInput,
-        audioInputDevices,
-        changeAudioInput,
-        "audio-input",
-      )}
-      <VolumeUpRoundedIcon height="24px" width="24px" />
-      {@render io(
-        selectedAudioOutput,
-        audioOutputDevices,
-        changeAudioOutput,
-        "audio-output",
-      )}
+  <div class="left"></div>
+  <div class="center">
+    <div class="dropdown audio">
+      <div popover id="dropdown-menu-audio" class="dropdown-menu">
+        <MicRoundedIcon height="24px" width="24px" />
+        {@render io(
+          selectedAudioInput,
+          audioInputDevices,
+          changeAudioInput,
+          "audio-input",
+        )}
+        <VolumeUpRoundedIcon height="24px" width="24px" />
+        {@render io(
+          selectedAudioOutput,
+          audioOutputDevices,
+          changeAudioOutput,
+          "audio-output",
+        )}
+      </div>
+      <span class="dropdown-button-container">
+        <button
+          aria-label="audio-dropdown-toggle"
+          popovertarget="dropdown-menu-audio"
+          class="dropdown-toggle"
+          onclick={() => {
+            audioDropDownOpen = !audioDropDownOpen;
+          }}
+        >
+          <DotsIcon height="24px" width="24px" />
+        </button>
+        <button
+          aria-label="audio-toggle"
+          class="audio-toggle-button"
+          onclick={toggleAudio}
+        >
+          {#if localAudioPlaying}
+            <MicOutlineIcon height="24px" width="24px" />
+          {:else}
+            <MicOffOutlineIcon height="24px" width="24px" />
+          {/if}
+        </button>
+      </span>
     </div>
-    <span class="dropdown-button-container">
-      <button
-        aria-label="audio-dropdown-toggle"
-        popovertarget="dropdown-menu-audio"
-        class="dropdown-toggle"
-        onclick={() => {
-          audioDropDownOpen = !audioDropDownOpen;
-        }}
-      >
-        <DotsIcon height="24px" width="24px" />
-      </button>
-      <button
-        aria-label="audio-toggle"
-        class="audio-toggle-button"
-        onclick={toggleAudio}
-      >
-        {#if localAudioPlaying}
-          <MicOutlineIcon height="24px" width="24px" />
-        {:else}
-          <MicOffOutlineIcon height="24px" width="24px" />
-        {/if}
-      </button>
-    </span>
-  </div>
 
-  <div class="dropdown video">
-    <div popover id="dropdown-menu-video" class="dropdown-menu">
-      <VideocamRoundedIcon height="24px" width="24px" />
-      {@render io(
-        selectedVideoInput,
-        videoInputDevices,
-        changeVideoInput,
-        "audio-input",
-      )}
+    <div class="dropdown video">
+      <div popover id="dropdown-menu-video" class="dropdown-menu">
+        <VideocamRoundedIcon height="24px" width="24px" />
+        {@render io(
+          selectedVideoInput,
+          videoInputDevices,
+          changeVideoInput,
+          "audio-input",
+        )}
+      </div>
+      <span class="dropdown-button-container">
+        <button
+          aria-label="video-dropdown-toggle"
+          popovertarget="dropdown-menu-video"
+          class="dropdown-toggle"
+          onclick={() => {
+            videoDropDownOpen = !videoDropDownOpen;
+          }}
+        >
+          <DotsIcon height="24px" width="24px" />
+        </button>
+        <button
+          aria-label="video-toggle"
+          class="video-toggle-button"
+          onclick={toggleVideo}
+        >
+          {#if localVideoPlaying}
+            <CameraOutlineIcon width="24" height="24" />
+          {:else}
+            <CameraOffOutlineIcon width="24" height="24" />
+          {/if}
+        </button>
+      </span>
     </div>
-    <span class="dropdown-button-container">
-      <button
-        aria-label="video-dropdown-toggle"
-        popovertarget="dropdown-menu-video"
-        class="dropdown-toggle"
-        onclick={() => {
-          videoDropDownOpen = !videoDropDownOpen;
-        }}
-      >
-        <DotsIcon height="24px" width="24px" />
-      </button>
-      <button
-        aria-label="video-toggle"
-        class="video-toggle-button"
-        onclick={toggleVideo}
-      >
-        {#if localVideoPlaying}
-          <CameraOutlineIcon width="24" height="24" />
-        {:else}
-          <CameraOffOutlineIcon width="24" height="24" />
-        {/if}
-      </button>
-    </span>
+
+    <button aria-label="screen-share-toggle" class="screen-share-toggle">
+      {#if false}
+        <ScreenShareIcon height="24px" width="24px" />
+      {:else}
+        <ScreenShareOutlineIcon height="24px" width="24px" />
+      {/if}
+    </button>
+
+    <button onclick={endCall} aria-label="call-end-toggle" class="end-call">
+      <CallEndOutlineIcon height="24px" width="24px" />
+    </button>
   </div>
-
-  <button aria-label="screen-share-toggle" class="screen-share-toggle">
-    {#if false}
-      <ScreenShareIcon height="24px" width="24px" />
-    {:else}
-      <ScreenShareOutlineIcon height="24px" width="24px" />
-    {/if}
-  </button>
-
-  <button onclick={endCall} aria-label="call-end-toggle" class="end-call">
-    <CallEndOutlineIcon height="24px" width="24px" />
-  </button>
+  <div class="right">
+    <button
+    class="toggle-chat"
+      onclick={toggleChat}>
+      <ChatIcon height="24px" width="24px" />
+      </button
+    >
+  </div>
 </section>
 
 <style>
@@ -375,15 +389,18 @@
     display: flex;
     justify-content: center;
   }
-
+  .center {
+    display: flex;
+    gap: 1rem;
+  }
   .options {
+    width: 100%;
     bottom: 1rem;
     left: 0;
     right: 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 1rem;
+    justify-content: space-between;
   }
   .dropdown.audio {
     anchor-name: --anchor-audio;
@@ -427,6 +444,9 @@
     height: 3rem;
     width: 3rem;
     border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   .dropdown-button-container {
     background-color: var(--surface);

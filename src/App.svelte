@@ -7,11 +7,12 @@
   import Dialog from "./components/Dialog.svelte";
   import { WebRTCConnection, type SignalMessage } from "./lib/webrtc.svelte";
   import AlertsOverlay from "./components/AlertsOverlay.svelte";
+  import Chat from "./components/Chat.svelte";
 
   // State
   let localStream: MediaStream | null = $state(null);
-  let localVideoPlaying:boolean = $derived(localStream !== null);
-  let localAudioPlaying:boolean = $derived(localStream !== null);
+  let localVideoPlaying: boolean = $derived(localStream !== null);
+  let localAudioPlaying: boolean = $derived(localStream !== null);
   let remoteVideoPlaying = $state(false);
   let remoteAudioPlaying = $state(false);
   // video elements for remote and local streams
@@ -32,7 +33,12 @@
   let roomName = $state("");
   let userName = $state("");
   let peerName = $state("");
+  let main: HTMLElement;
+  let chatOpen = $state(false);
 
+  const toggleChat = () => {
+    chatOpen = !chatOpen;
+  };
   // gets permissions for IO at mount time
   const getPermissions = async () => {
     console.info("getPermissions fired!");
@@ -204,7 +210,7 @@
 
 <AlertsOverlay />
 <Dialog {joinRoom} {onFormSubmit} bind:dialogRef />
-<main>
+<main bind:this={main}>
   <header class="user-info">
     <span>
       <span> Room </span>
@@ -213,16 +219,21 @@
     <span> <span>State</span> <span>{connectionState}</span></span>
     <span><span>Username</span> <span>{userName ? userName : "NA"}</span></span>
   </header>
-  <Calls
-    bind:localVideoElement
-    bind:remoteVideoElement
-    {localVideoPlaying}
-    {localAudioPlaying}
-    {remoteVideoPlaying}
-    {remoteAudioPlaying}
-    {connected}
-    {peerName}
-  />
+  <div class="center">
+    <Calls
+      bind:localVideoElement
+      bind:remoteVideoElement
+      {localVideoPlaying}
+      {localAudioPlaying}
+      {remoteVideoPlaying}
+      {remoteAudioPlaying}
+      {connected}
+      {peerName}
+      {main}
+    />
+    <Chat {chatOpen} />
+  </div>
+
   <MediaControl
     bind:localStream
     bind:localVideoPlaying
@@ -238,6 +249,7 @@
     {rtc}
     {deviceConstraints}
     {endCall}
+    {toggleChat}
   />
 </main>
 
@@ -251,6 +263,17 @@
     align-items: center;
     height: 100%;
     gap: 2rem;
+    overflow: clip;
+  }
+  .center {
+    position: relative;
+    display: flex;
+    flex-grow: 1;
+    margin: auto;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
   }
 
   .user-info {

@@ -9,6 +9,7 @@
     peerName,
     localVideoElement: lv = $bindable(),
     remoteVideoElement: rv = $bindable(),
+    main,
   }: {
     localVideoPlaying: boolean;
     localAudioPlaying: boolean;
@@ -18,6 +19,7 @@
     peerName: string;
     localVideoElement: HTMLVideoElement | undefined;
     remoteVideoElement: HTMLVideoElement | undefined;
+    main: HTMLElement;
   } = $props();
   import IconMSMicOutline from "~icons/material-symbols/mic-outline";
   import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
@@ -28,17 +30,13 @@
       ? peerName.split(" ")[0][0] + peerName.split(" ")[1][0]
       : peerName[0],
   );
-  let parent: HTMLElement | null = $state(null);
-  function getParent(node: HTMLElement) {
-    parent = node.parentElement;
-  }
 </script>
 
-<section {@attach getParent} class="feed">
+<section class="feed">
   <div
     class={["local-video-container", "video-container", "right", "bottom"]}
     class:minimize={connected}
-    use:draggable={{ bounds: parent, enabled:connected}}
+    use:draggable={{ bounds: main, enabled: connected }}
   >
     <div class="overlay">
       <div class="name">
