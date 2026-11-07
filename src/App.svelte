@@ -8,6 +8,7 @@
   import { WebRTCConnection, type SignalMessage } from "./lib/webrtc.svelte";
   import AlertsOverlay from "./components/AlertsOverlay.svelte";
   import Chat from "./components/Chat.svelte";
+  import { addMessage } from "./lib/chat.svelte";
 
   // State
   let localStream: MediaStream | null = $state(null);
@@ -38,6 +39,10 @@
 
   const toggleChat = () => {
     chatOpen = !chatOpen;
+  };
+  const sendMessage = (msg: string) => {
+    rtc.sendMessage(msg);
+    addMessage(msg, new Date(), false);
   };
   // gets permissions for IO at mount time
   const getPermissions = async () => {
@@ -231,7 +236,7 @@
       {peerName}
       {main}
     />
-    <Chat {chatOpen} />
+    <Chat {chatOpen}{sendMessage} />
   </div>
 
   <MediaControl

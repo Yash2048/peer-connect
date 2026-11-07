@@ -1,14 +1,16 @@
 <script lang="ts">
     let {
         chatOpen,
+        sendMessage
     }: {
         chatOpen: boolean;
+        sendMessage: (msg:string)=>void;
     } = $props();
     import { addMessage, messages } from "../lib/chat.svelte";
     const onsubmit = (ev: Event) => {
         ev.preventDefault();
         if (!text) return;
-        addMessage(text, new Date(), false);
+        sendMessage(text);
         text = "";
     };
     let text: string = $state("");

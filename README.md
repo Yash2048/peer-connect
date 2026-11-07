@@ -51,7 +51,8 @@ Expose the server port and put the url inside `.env` file's `VITE_SIGNALING_SERV
 - [x] Isolate webrtc logic
 - [ ] Add routes 
 - [ ] Add screen share logic
-- [ ] Add group chat
+- [x] Add group chat
+- [ ] Add an unread messages badge over toggleChat button 
 - [ ] Room creator should be able to accept and reject join requests
 - [ ] Push to speak
 - [x] Alerts for errors, warning and general info

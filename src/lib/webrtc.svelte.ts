@@ -1,5 +1,9 @@
 // lib/webrtc.svelte.ts
 
+import { pushAlert } from "./alerts.svelte";
+import { addMessage } from "./chat.svelte";
+
+
 type SignalMessage =
   | { type: "offer"; offer: RTCSessionDescriptionInit }
   | { type: "answer"; answer: RTCSessionDescriptionInit }
@@ -20,6 +24,7 @@ const rtcConfig: RTCConfiguration = {
 
 export class WebRTCConnection {
   #pc: RTCPeerConnection | null = $state(null);
+  #dc: RTCDataChannel | null = $state(null)
   #connectionState: RTCPeerConnectionState | "NA" = $state("NA");
   #remoteStream: MediaStream | null = $state(null);
 
@@ -55,13 +60,19 @@ export class WebRTCConnection {
     return this.#remoteStream;
   }
 
- 
+
   init() {
     this.#pc = new RTCPeerConnection(rtcConfig);
+    this.#dc = this.#pc.createDataChannel('chat', { ordered: true ,negotiated:true, id:69})
     this.#pc.onicecandidate = this.handleICECandidateEvent;
     this.#pc.ontrack = this.handleTrackEvent;
     this.#pc.onconnectionstatechange = this.handleConnectionStateChangeEvent;
     this.#pc.onnegotiationneeded = this.handleNegotiationNeededEvent;
+    this.#dc.onopen = this.handleOpenEvent;
+    this.#dc.onmessage = this.handleMessageEvent;
+    this.#dc.onclose = this.handleCloseEvent;
+    this.#dc.onerror = this.handleErrorEvent;
+    this.#dc.onclosing = this.handleClosingEvent;
     return this.#pc;
   }
 
@@ -167,6 +178,11 @@ export class WebRTCConnection {
     this.callbacks.onClosed();
   }
 
+  sendMessage(msg: string) {
+    if (this.#dc) this.#dc.send(msg)
+    else pushAlert('error', 'data channel doesn\'t exist');
+  }
+
   private handleICECandidateEvent = (e: RTCPeerConnectionIceEvent) => {
     if (e.candidate) {
       this.callbacks.onSignal({
@@ -220,6 +236,16 @@ export class WebRTCConnection {
         break;
     }
   };
+
+  private handleMessageEvent = (ev: MessageEvent) => { 
+    addMessage(ev.data, new Date, true);
+  }
+  private handleOpenEvent = () => {
+    pushAlert('info', 'datachannel opened!')
+  }
+  private handleCloseEvent = () => { pushAlert('error', 'datachannel closed!') }
+  private handleClosingEvent = () => { pushAlert('warning', 'datachannel closing...') }
+  private handleErrorEvent = () => { pushAlert('error', 'An error occurred') }
 }
 
 export type { SignalMessage };
