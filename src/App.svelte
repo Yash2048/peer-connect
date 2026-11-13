@@ -9,27 +9,17 @@
   import AlertsOverlay from "./components/AlertsOverlay.svelte";
   import Chat from "./components/Chat.svelte";
   import { addMessage } from "./lib/chat.svelte";
+  import { media } from "./lib/localMedia.svelte";
 
   // State
-  let localStream: MediaStream | null = $state(null);
-  let localVideoPlaying: boolean = $derived(localStream !== null);
-  let localAudioPlaying: boolean = $derived(localStream !== null);
   let remoteVideoPlaying = $state(false);
   let remoteAudioPlaying = $state(false);
   // video elements for remote and local streams
-  let localVideoElement: HTMLVideoElement | undefined = $state();
+  let localVideoElement: HTMLVideoElement | null = $state(null);
   let remoteVideoElement: HTMLVideoElement | undefined = $state();
-  // to store the devices from the stream
-  let audioInputDevices: MediaDeviceInfo[] = $state([]);
-  let audioOutputDevices: MediaDeviceInfo[] = $state([]);
-  let videoInputDevices: MediaDeviceInfo[] = $state([]);
   // The stream. Client's stream
   let connected: boolean = $state(false);
   // for deciding the tracks and their configurations that the stream would have
-  let selectedAudioInput = $state("");
-  let selectedAudioOutput = $state("");
-  let selectedVideoInput = $state("");
-
   let deviceConstraints: Record<string, MediaStreamConstraints> = $state({});
   let roomName = $state("");
   let userName = $state("");
@@ -43,87 +33,6 @@
   const sendMessage = (msg: string) => {
     rtc.sendMessage(msg);
     addMessage(msg, new Date(), false);
-  };
-  // gets permissions for IO at mount time
-  const getPermissions = async () => {
-    console.info("getPermissions fired!");
-    try {
-      const initialStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true,
-      });
-
-      const audioCapabilities = initialStream
-        .getAudioTracks()[0]
-        .getCapabilities();
-      const videoCapabilities = initialStream
-        .getVideoTracks()[0]
-        .getCapabilities();
-
-      if (audioCapabilities.deviceId) {
-        deviceConstraints[audioCapabilities.deviceId] = {
-          audio: { deviceId: { exact: audioCapabilities.deviceId } },
-        };
-      }
-
-      if (videoCapabilities.deviceId) {
-        const { height, width } = videoCapabilities;
-        deviceConstraints[videoCapabilities.deviceId] = {
-          video: {
-            deviceId: { exact: videoCapabilities.deviceId },
-            width: width?.max,
-            height: height?.max,
-          },
-        };
-      }
-
-      // done reading capabilities, release the probe stream
-      initialStream.getTracks().forEach((track) => track.stop());
-
-      const audioStream = await navigator.mediaDevices.getUserMedia(
-        deviceConstraints[audioCapabilities.deviceId],
-      );
-      const videoStream = await navigator.mediaDevices.getUserMedia(
-        deviceConstraints[videoCapabilities.deviceId],
-      );
-
-      selectedAudioInput = audioCapabilities.deviceId
-        ? audioCapabilities.deviceId
-        : "";
-      selectedVideoInput = videoCapabilities.deviceId
-        ? videoCapabilities.deviceId
-        : "";
-      localStream = new MediaStream([
-        ...audioStream.getAudioTracks(),
-        ...videoStream.getVideoTracks(),
-      ]);
-
-      if (!localVideoElement) {
-        console.error("localVideo is undefined.");
-        return;
-      }
-
-      localVideoElement.srcObject = localStream;
-      localVideoPlaying = true;
-      console.log("Stream is created");
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const getDevices = async () => {
-    console.info("getDevices fired!");
-
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    console.log("Devices:");
-    console.table(devices);
-    audioInputDevices = devices.filter((device) => device.kind == "audioinput");
-    audioOutputDevices = devices.filter(
-      (device) => device.kind == "audiooutput",
-    );
-    selectedAudioOutput = audioOutputDevices[0]?.deviceId ?? "";
-
-    videoInputDevices = devices.filter((device) => device.kind == "videoinput");
   };
 
   async function toClipboard() {
@@ -189,7 +98,7 @@
 
   const startCall = async () => {
     console.info("startCall fired!");
-    if (localStream) await rtc.startCall(localStream);
+    if (media.localStream) await rtc.startCall(media.localStream);
     else console.error("stream is undefined");
   };
 
@@ -200,7 +109,7 @@
   });
 
   socket.on("signal", async (peername: string, msg: SignalMessage) => {
-    await rtc.handleSignal(msg, localStream);
+    await rtc.handleSignal(msg, media.localStream);
     peerName = peername;
   });
 
@@ -208,8 +117,10 @@
 
   onMount(async () => {
     if (dialogRef) dialogRef.showModal();
-    await getPermissions();
-    await getDevices();
+    media.localVideoElement = localVideoElement;
+    await media.getStream();
+    // await getPermissions();
+    // await getDevices();
   });
 </script>
 
@@ -228,31 +139,19 @@
     <Calls
       bind:localVideoElement
       bind:remoteVideoElement
-      {localVideoPlaying}
-      {localAudioPlaying}
       {remoteVideoPlaying}
       {remoteAudioPlaying}
       {connected}
       {peerName}
       {main}
     />
-    <Chat {chatOpen}{sendMessage} />
+    <Chat {chatOpen} {sendMessage} />
   </div>
 
   <MediaControl
-    bind:localStream
-    bind:localVideoPlaying
-    bind:localAudioPlaying
-    {audioInputDevices}
-    {audioOutputDevices}
-    {videoInputDevices}
     {localVideoElement}
     {remoteVideoElement}
-    {selectedAudioInput}
-    {selectedAudioOutput}
-    {selectedVideoInput}
     {rtc}
-    {deviceConstraints}
     {endCall}
     {toggleChat}
   />

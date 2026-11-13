@@ -1,8 +1,5 @@
 <script lang="ts">
-  import "../app.css";
   let {
-    localVideoPlaying,
-    localAudioPlaying,
     remoteVideoPlaying,
     remoteAudioPlaying,
     connected,
@@ -11,19 +8,18 @@
     remoteVideoElement: rv = $bindable(),
     main,
   }: {
-    localVideoPlaying: boolean;
-    localAudioPlaying: boolean;
     remoteVideoPlaying: boolean;
     remoteAudioPlaying: boolean;
     connected: boolean;
     peerName: string;
-    localVideoElement: HTMLVideoElement | undefined;
+    localVideoElement: HTMLVideoElement | null;
     remoteVideoElement: HTMLVideoElement | undefined;
     main: HTMLElement;
   } = $props();
   import IconMSMicOutline from "~icons/material-symbols/mic-outline";
   import IconMSMicOffOutline from "~icons/material-symbols/mic-off-outline";
   import { draggable } from "../lib/draggable";
+    import { media } from "../lib/localMedia.svelte";
 
   const initials = $derived(
     peerName.split(" ").length > 1
@@ -41,7 +37,7 @@
     <div class="overlay">
       <div class="name">
         <div class="icon">
-          {#if localAudioPlaying}
+          {#if media.localAudioPlaying}
             <IconMSMicOutline height="24px" width="24px" />
           {:else}
             <IconMSMicOffOutline height="24px" width="24px" />
@@ -53,8 +49,8 @@
     </div>
     <video
       class="local"
-      class:play={localVideoPlaying}
-      class:playOff={!localVideoPlaying}
+      class:play={media.localVideoPlaying}
+      class:playOff={!media.localVideoPlaying}
       id="local"
       bind:this={lv}
       autoplay

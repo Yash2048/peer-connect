@@ -1,166 +1,73 @@
 <script lang="ts">
-  import "../app.css";
+  import { media } from "../lib/localMedia.svelte";
   import { WebRTCConnection } from "../lib/webrtc.svelte";
   let {
-    localVideoPlaying = $bindable(),
-    localAudioPlaying = $bindable(),
-    localStream = $bindable(),
     localVideoElement,
     remoteVideoElement,
-    audioInputDevices,
-    audioOutputDevices,
-    videoInputDevices,
-    selectedAudioInput,
-    selectedAudioOutput,
-    selectedVideoInput,
     rtc,
-    deviceConstraints,
     toggleChat,
     endCall,
   }: {
-    localVideoPlaying: boolean;
-    localAudioPlaying: boolean;
-    localStream: MediaStream | null;
-    localVideoElement: HTMLVideoElement | undefined;
+    localVideoElement: HTMLVideoElement | null;
     remoteVideoElement: HTMLVideoElement | undefined;
-    audioInputDevices: MediaDeviceInfo[];
-    audioOutputDevices: MediaDeviceInfo[];
-    videoInputDevices: MediaDeviceInfo[];
     rtc: WebRTCConnection;
-    selectedAudioInput: string;
-    selectedAudioOutput: string;
-    selectedVideoInput: string;
-    deviceConstraints: Record<string, MediaStreamConstraints>;
-    toggleChat:()=> void;
+    toggleChat: () => void;
     endCall: () => void;
   } = $props();
 
   const toggleVideo = async () => {
-    console.info("toggleFeed fired!");
-    if (!localStream) return;
-    if (localVideoPlaying) {
-      const videoTracks = localStream.getVideoTracks();
+    if (!media.localStream) return;
 
-      const senders = rtc.getSenders();
-      videoTracks.forEach((track) => {
-        const sender = senders.find((s) => s.track === track);
-        if (sender) rtc.removeTrack(sender);
-        track.stop();
-        if (localStream) localStream.removeTrack(track);
-      });
-
-      if (!localVideoElement) {
-        console.error("localVideoElement is undefined.");
-        return;
-      }
-      if (!localStream) {
-        console.error("stream is undefined.");
-        return;
-      }
-      localVideoElement.srcObject = localStream;
-      localVideoPlaying = false;
-    } else {
-      try {
-        const videoStream = await navigator.mediaDevices.getUserMedia(
-          deviceConstraints[selectedVideoInput],
-        );
-        const videoTrack = videoStream.getVideoTracks()[0];
-
-        if (!localVideoElement) {
-          console.error("localVideoElement is undefined.");
-          return;
-        }
-
-        if (!localStream) {
-          localStream = videoStream;
-        } else {
-          localStream.addTrack(videoTrack);
-        }
-
-        rtc.addTrack(videoTrack, localStream);
-        // localVideoElement.srcObject = stream;
-        localVideoPlaying = true;
-      } catch (error) {
-        console.error(error);
-      }
-    }
+    const track = await media.toggleVideo(rtc);
+    if (track) rtc.addTrack(track, media.localStream);
   };
 
   const toggleAudio = async () => {
-    console.info("toggleAudio fired!");
-    if (localAudioPlaying) {
-      if (!localStream) return;
-      const audioTracks = localStream.getAudioTracks();
-      const senders = rtc.getSenders();
-      audioTracks.forEach((track) => {
-        const sender = senders.find((s) => s.track === track);
-        if (sender) rtc.removeTrack(sender);
-        track.stop();
-        if (localStream) localStream.removeTrack(track);
-      });
+    if (!media.localStream) return;
 
-      localAudioPlaying = false;
-    } else {
-      try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        const audioTrack = audioStream.getAudioTracks()[0];
-
-        if (!localVideoElement) return;
-        if (!localStream) {
-          localStream = audioStream;
-        } else {
-          localStream.addTrack(audioTrack);
-        }
-        rtc.addTrack(audioTrack, localStream);
-
-        localAudioPlaying = true;
-      } catch (error) {
-        console.error(error);
-      }
-    }
+    const track = await media.toggleAudio(rtc);
+    if (track) rtc.addTrack(track, media.localStream);
   };
 
   const changeAudioInput = async (e: Event) => {
-    console.info("changeAudioInput fired!");
     const el = e.target as HTMLSelectElement;
-    const deviceId = el.value;
 
-    if (!localAudioPlaying) {
-      console.warn("Can't change Audio Input while muted.");
-      el.value = selectedAudioInput;
+    const track = await media.changeAudioInput(el.value);
+    if (!track) {
+      el.value = media.selectedAudioInput; // revert the <select>
       return;
     }
 
-    const audioConstraints: MediaStreamConstraints = {
-      audio: { deviceId: { exact: deviceId } },
-    };
-
     try {
-      const audioStream =
-        await navigator.mediaDevices.getUserMedia(audioConstraints);
-      const audioTrack = audioStream.getAudioTracks()[0];
-
-      if (!localStream) {
-        localStream = audioStream;
-      } else {
-        const oldAudioTrack = localStream.getAudioTracks()[0];
-        oldAudioTrack.stop();
-        localStream.removeTrack(oldAudioTrack);
-        localStream.addTrack(audioTrack);
-      }
-      await rtc.replaceTrack("audio", audioTrack);
-      selectedAudioInput = deviceId;
+      await rtc.replaceTrack("audio", track);
     } catch (error) {
       console.error(error);
-      el.value = selectedAudioInput;
+    }
+  };
+
+  const changeVideoInput = async (e: Event) => {
+    const el = e.target as HTMLSelectElement;
+
+    const track = await media.changeVideoInput(el.value);
+    if (!track) {
+      el.value = media.selectedVideoInput;
+      return;
+    }
+
+    try {
+      await rtc.replaceTrack("video", track);
+    } catch (error) {
+      console.error(error);
+    }
+
+    if (localVideoElement && media.localStream) {
+      localVideoElement.srcObject = media.localStream;
     }
   };
   const changeAudioOutput = async (e: Event) => {
     console.info("changeAudioOutput fired!");
     const deviceId = (e.target as HTMLSelectElement).value;
-    selectedAudioOutput = deviceId;
+    media.selectedAudioOutput = deviceId;
     if (!remoteVideoElement) {
       console.error("remoteVideoElement doesn't exist");
       return;
@@ -174,73 +81,6 @@
       console.log("Device changed to", deviceId);
     } catch (error) {
       console.error(error);
-    }
-  };
-  const changeVideoInput = async (e: Event) => {
-    console.info("changeVideoInput fired!");
-    const el = e.target as HTMLSelectElement;
-    const deviceId = el.value;
-
-    if (!localVideoPlaying) {
-      console.warn("Can't change Video Input while video is off.");
-      el.value = selectedVideoInput;
-      return;
-    }
-    const videoConstraints: MediaStreamConstraints = {
-      video: { deviceId: { exact: deviceId } },
-    };
-
-    try {
-      let newStream;
-      if (deviceConstraints[deviceId])
-        newStream = await navigator.mediaDevices.getUserMedia(
-          deviceConstraints[deviceId],
-        );
-      else {
-        newStream = await navigator.mediaDevices.getUserMedia(videoConstraints);
-        const videoCapabilities = newStream
-          .getVideoTracks()[0]
-          .getCapabilities();
-
-        if (videoCapabilities.deviceId) {
-          const { height, width } = videoCapabilities;
-          deviceConstraints[videoCapabilities.deviceId] = {
-            video: {
-              deviceId: { exact: videoCapabilities.deviceId },
-              width: width?.max,
-              height: height?.max,
-            },
-          };
-        }
-        newStream.getTracks().forEach((track) => track.stop());
-        if (deviceConstraints[deviceId])
-          newStream = await navigator.mediaDevices.getUserMedia(
-            deviceConstraints[deviceId],
-          );
-      }
-      const newVideoTrack = newStream.getVideoTracks()[0];
-
-      if (!localStream) {
-        localStream = newStream;
-      } else {
-        const oldVideoTrack = localStream.getVideoTracks()[0];
-
-        if (oldVideoTrack) {
-          oldVideoTrack.stop();
-          localStream.removeTrack(oldVideoTrack);
-        }
-        localStream.addTrack(newVideoTrack);
-      }
-
-      await rtc.replaceTrack("video", newVideoTrack);
-
-      if (localVideoElement && localStream)
-        localVideoElement.srcObject = localStream;
-
-      selectedVideoInput = deviceId;
-    } catch (error) {
-      console.error(error);
-      el.value = selectedVideoInput;
     }
   };
   let audioDropDownOpen = $state(false);
@@ -262,7 +102,7 @@
 
 {#snippet io(
   selectedValue: string,
-  devices: MediaDeviceInfo[],
+  media: MediaDeviceInfo[],
   changeHandler: (e: Event) => Promise<void>,
   name: string,
 )}
@@ -272,10 +112,10 @@
     {name}
     id="{name}-selector"
   >
-    {#if devices.length === 0 || !devices[0].label}
+    {#if media.length === 0 || !media[0].label}
       <option value="">Permission required</option>
     {:else}
-      {#each devices as device}
+      {#each media as device}
         <option value={device.deviceId}>{device.label}</option>
       {/each}
     {/if}
@@ -289,15 +129,15 @@
       <div popover id="dropdown-menu-audio" class="dropdown-menu">
         <MicRoundedIcon height="24px" width="24px" />
         {@render io(
-          selectedAudioInput,
-          audioInputDevices,
+          media.selectedAudioInput,
+          media.audioInputDevices,
           changeAudioInput,
           "audio-input",
         )}
         <VolumeUpRoundedIcon height="24px" width="24px" />
         {@render io(
-          selectedAudioOutput,
-          audioOutputDevices,
+          media.selectedAudioOutput,
+          media.audioOutputDevices,
           changeAudioOutput,
           "audio-output",
         )}
@@ -318,7 +158,7 @@
           class="audio-toggle-button"
           onclick={toggleAudio}
         >
-          {#if localAudioPlaying}
+          {#if media.localAudioPlaying}
             <MicOutlineIcon height="24px" width="24px" />
           {:else}
             <MicOffOutlineIcon height="24px" width="24px" />
@@ -331,8 +171,8 @@
       <div popover id="dropdown-menu-video" class="dropdown-menu">
         <VideocamRoundedIcon height="24px" width="24px" />
         {@render io(
-          selectedVideoInput,
-          videoInputDevices,
+          media.selectedVideoInput,
+          media.videoInputDevices,
           changeVideoInput,
           "audio-input",
         )}
@@ -353,7 +193,7 @@
           class="video-toggle-button"
           onclick={toggleVideo}
         >
-          {#if localVideoPlaying}
+          {#if media.localVideoPlaying}
             <CameraOutlineIcon width="24" height="24" />
           {:else}
             <CameraOffOutlineIcon width="24" height="24" />
@@ -375,12 +215,9 @@
     </button>
   </div>
   <div class="right">
-    <button
-    class="toggle-chat"
-      onclick={toggleChat}>
+    <button class="toggle-chat" onclick={toggleChat}>
       <ChatIcon height="24px" width="24px" />
-      </button
-    >
+    </button>
   </div>
 </section>
 
