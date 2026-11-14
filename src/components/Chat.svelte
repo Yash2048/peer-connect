@@ -17,7 +17,7 @@
     import SendIcon from "~icons/material-symbols/send";
 </script>
 
-<aside class:open={chatOpen}>
+<aside class:open={chatOpen} inert={!chatOpen}>
     <header>
         <h2>Chat</h2>
     </header>

@@ -87,3 +87,7 @@
   video {
     display: block;
   }
+
+  ::-webkit-scrollbar{
+    display: none;
+  }
